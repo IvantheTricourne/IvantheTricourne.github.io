@@ -1,5 +1,8 @@
-My name is Carl Factora. I do some stuff. I just figured out about this
-today, so it's going to be a while before it gets interesting.
+My name is Carl Factora. I'm a writer, mathematician, SSBM player and
+aspiring software developer.
+
+For some reason, you've found my GitHub.io page. This is relatively new,
+so it'll be a second before things get interesting here.
 
 Follow me on <a href="https://twitter.com/CJF_setBaNG">twitter</a>,
 if you like. If you like video games, I stream on
