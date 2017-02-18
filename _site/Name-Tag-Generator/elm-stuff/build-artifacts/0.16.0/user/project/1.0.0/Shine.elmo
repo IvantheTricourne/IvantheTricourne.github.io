@@ -1,0 +1,235 @@
+Elm.Shine = Elm.Shine || {};
+Elm.Shine.make = function (_elm) {
+   "use strict";
+   _elm.Shine = _elm.Shine || {};
+   if (_elm.Shine.values) return _elm.Shine.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Color = Elm.Color.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $Graphics$Collage = Elm.Graphics.Collage.make(_elm),
+   $Html = Elm.Html.make(_elm),
+   $Html$Attributes = Elm.Html.Attributes.make(_elm),
+   $Html$CssHelpers = Elm.Html.CssHelpers.make(_elm),
+   $Html$Events = Elm.Html.Events.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm),
+   $StartApp$Simple = Elm.StartApp.Simple.make(_elm),
+   $String = Elm.String.make(_elm),
+   $Text = Elm.Text.make(_elm);
+   var _op = {};
+   var filledHex = F5(function (sides,off,rot,b,e) {
+      var mkShine = function (clr) {
+         return A2($Graphics$Collage.rotate,
+         rot,
+         A2($Graphics$Collage.rotate,
+         1.576,
+         A2($Graphics$Collage.outlined,
+         $Graphics$Collage.solid(clr),
+         A2($Graphics$Collage.ngon,sides,50))));
+      };
+      var twentyXX = function (x) {
+         return A4($Color.rgba,112,219,255,x);
+      };
+      var format = function (x) {
+         var _p0 = x;
+         if (_p0 === 0) {
+               return A2($Graphics$Collage.scale,x,mkShine(twentyXX(x)));
+            } else {
+               return A2($Graphics$Collage.scale,
+               x,
+               A2($Graphics$Collage.rotate,off * x,mkShine(twentyXX(x / 22))));
+            }
+      };
+      return function (_p1) {
+         return A2($List.map,
+         format,
+         A2($List.map,function (x) {    return x / 100.0;},_p1));
+      }(_U.range(b,e));
+   });
+   var shine = F6(function (filled,sides,size,rot,s,m) {
+      var nameToIMG = function (x) {
+         return filled ? A5(filledHex,
+         sides,
+         x,
+         rot,
+         0,
+         300) : A5(filledHex,sides,x,rot,180,300);
+      };
+      var displayName = function (s) {
+         return function (_p2) {
+            return $Graphics$Collage.text($Text.bold(A2($Text.height,
+            size,
+            _p2)));
+         }($Text.fromString(s));
+      };
+      return function (_p3) {
+         return $Html.fromElement(A3($Graphics$Collage.collage,
+         400,
+         400,
+         _p3));
+      }(A2($List._op["::"],displayName(s),nameToIMG(m)));
+   });
+   var myStyle = function (px) {
+      return $Html$Attributes.style(_U.list([{ctor: "_Tuple2"
+                                             ,_0: "width"
+                                             ,_1: px}
+                                            ,{ctor: "_Tuple2",_0: "padding",_1: "10px"}
+                                            ,{ctor: "_Tuple2",_0: "text-align",_1: "center"}
+                                            ,{ctor: "_Tuple2",_0: "display",_1: "inline-block"}]));
+   };
+   var field = F3(function (address,toAction,content) {
+      return A2($Html.div,
+      _U.list([myStyle("15px")]),
+      _U.list([A2($Html.input,
+      _U.list([$Html$Attributes.placeholder("Enter your name here")
+              ,$Html$Attributes.value(content)
+              ,A3($Html$Events.on,
+              "input",
+              $Html$Events.targetValue,
+              function (string) {
+                 return A2($Signal.message,address,toAction(string));
+              })]),
+      _U.list([]))]));
+   });
+   var _p4 = $Html$CssHelpers.withNamespace("dreamwriter");
+   var id = _p4.id;
+   var $class = _p4.$class;
+   var classList = _p4.classList;
+   var update = F2(function (action,model) {
+      var _p5 = action;
+      switch (_p5.ctor)
+      {case "Name": var _p6 = _p5._0;
+           return _U.cmp($String.length(_p6),20) < 1 ? _U.update(model,
+           {name: _p6}) : model;
+         case "Filled": return _U.update(model,
+           {fill: $Basics.not(model.fill)});
+         case "IncSides": return _U.update(model,
+           {sides: A2($Basics.min,model.sides + 1,12)});
+         case "DecSides": return _U.update(model,
+           {sides: A2($Basics.max,
+           model.sides - 1,
+           _U.cmp(model.nth,7) > -1 ? 2 : 3)});
+         case "IncSize": return _U.update(model,
+           {size: A2($Basics.min,model.size + 1,25)});
+         case "DecSize": return _U.update(model,
+           {size: A2($Basics.max,model.size - 1,12)});
+         case "Rotate": return _U.update(model,
+           {rotat: model.rotat + 2.5});
+         default: return _U.update(model,{nth: model.nth + 1});}
+   });
+   var Rotate = {ctor: "Rotate"};
+   var Render = {ctor: "Render"};
+   var DecSize = {ctor: "DecSize"};
+   var IncSize = {ctor: "IncSize"};
+   var Filled = {ctor: "Filled"};
+   var DecSides = {ctor: "DecSides"};
+   var IncSides = {ctor: "IncSides"};
+   var Name = function (a) {    return {ctor: "Name",_0: a};};
+   var view = F2(function (address,model) {
+      return A2($Html.div,
+      _U.list([]),
+      _U.list([A2($Html.a,
+              _U.list([$Html$Attributes.href("https://github.iu.edu/cfactora/CSCI-B490/tree/master/final-project")]),
+              _U.list([$Html.text("source code on GitHub")]))
+              ,A2($Html.hr,_U.list([]),_U.list([]))
+              ,A2($Html.h2,
+              _U.list([]),
+              _U.list([$Html.text("The (Simple) Hygenic-Name Tag Generator")]))
+              ,A2($Html.hr,_U.list([]),_U.list([]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([$Html.text("design your shape, enter your name, then click render!")]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([$Html.text(_U.cmp(model.sides,
+              2) > 0 ? "" : "EASTER EGG!!! (because it looks cool)")]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,IncSides)]),
+              _U.list([$Html.text("+")]))
+              ,A2($Html.div,
+              _U.list([myStyle("55px")]),
+              _U.list([$Html.text("sides")]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,DecSides)]),
+              _U.list([$Html.text("-")]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Rotate)]),
+              _U.list([$Html.text("rotate")]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Filled)]),
+              _U.list([$Html.text("fill/unfill")]))
+              ,A2($Html.div,_U.list([]),_U.list([]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,IncSize)]),
+              _U.list([$Html.text("+")]))
+              ,A2($Html.div,
+              _U.list([myStyle("55px")]),
+              _U.list([$Html.text("font size")]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,DecSize)]),
+              _U.list([$Html.text("-")]))
+              ,A3(field,address,Name,model.name)
+              ,A2($Html.hr,_U.list([]),_U.list([]))
+              ,A2($Html.button,
+              _U.list([A2($Html$Events.onClick,address,Render)]),
+              _U.list([$Html.text("render")]))
+              ,A2($Html.div,
+              _U.list([]),
+              _U.list([A6(shine,
+              model.fill,
+              model.sides,
+              model.size,
+              model.rotat,
+              model.name,
+              model.nth)]))]));
+   });
+   var Model = F7(function (a,b,c,d,e,f,g) {
+      return {name: a
+             ,prev: b
+             ,fill: c
+             ,sides: d
+             ,nth: e
+             ,size: f
+             ,rotat: g};
+   });
+   var empty = A7(Model,"","",false,6,0,20,0);
+   var updateOnlyIfNew = F2(function (model,f) {
+      return _U.eq(model.name,model.prev) || _U.eq(model.name,
+      "") ? model : A7(Model,
+      model.name,
+      model.name,
+      model.fill,
+      model.sides,
+      f(model.nth),
+      model.size,
+      model.rotat);
+   });
+   var main = $StartApp$Simple.start({model: empty
+                                     ,view: view
+                                     ,update: update});
+   return _elm.Shine.values = {_op: _op
+                              ,main: main
+                              ,Model: Model
+                              ,empty: empty
+                              ,Name: Name
+                              ,IncSides: IncSides
+                              ,DecSides: DecSides
+                              ,Filled: Filled
+                              ,IncSize: IncSize
+                              ,DecSize: DecSize
+                              ,Render: Render
+                              ,Rotate: Rotate
+                              ,update: update
+                              ,updateOnlyIfNew: updateOnlyIfNew
+                              ,$class: $class
+                              ,classList: classList
+                              ,id: id
+                              ,view: view
+                              ,field: field
+                              ,myStyle: myStyle
+                              ,filledHex: filledHex
+                              ,shine: shine};
+};

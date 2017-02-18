@@ -1,0 +1,226 @@
+var _IvantheTricourne$recurse_life$Main$sourceCode = 'https://github.com/IvantheTricourne/IvantheTricourne.github.io/tree/master/random-gifs';
+var _IvantheTricourne$recurse_life$Main$decodeGifUrl = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'data',
+		_1: {
+			ctor: '::',
+			_0: 'image_url',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$string);
+var _IvantheTricourne$recurse_life$Main$url = 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=';
+var _IvantheTricourne$recurse_life$Main$Model = F4(
+	function (a, b, c, d) {
+		return {topic: a, pressed: b, gifUrl: c, prevUrl: d};
+	});
+var _IvantheTricourne$recurse_life$Main$PrevGif = {ctor: 'PrevGif'};
+var _IvantheTricourne$recurse_life$Main$NewGif = function (a) {
+	return {ctor: 'NewGif', _0: a};
+};
+var _IvantheTricourne$recurse_life$Main$getRandomGif = function (topic) {
+	return A2(
+		_elm_lang$http$Http$send,
+		_IvantheTricourne$recurse_life$Main$NewGif,
+		A2(
+			_elm_lang$http$Http$get,
+			A2(_elm_lang$core$Basics_ops['++'], _IvantheTricourne$recurse_life$Main$url, topic),
+			_IvantheTricourne$recurse_life$Main$decodeGifUrl));
+};
+var _IvantheTricourne$recurse_life$Main$init = function (topic) {
+	return {
+		ctor: '_Tuple2',
+		_0: A4(_IvantheTricourne$recurse_life$Main$Model, topic, 0, '', ''),
+		_1: _IvantheTricourne$recurse_life$Main$getRandomGif(topic)
+	};
+};
+var _IvantheTricourne$recurse_life$Main$update = F2(
+	function (msg, model) {
+		var _p0 = msg;
+		switch (_p0.ctor) {
+			case 'MorePlease':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: _IvantheTricourne$recurse_life$Main$getRandomGif(model.topic)
+				};
+			case 'PrevGif':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{gifUrl: model.prevUrl}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'Presses':
+				return _elm_lang$core$Native_Utils.eq(_p0._0, 13) ? {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{topic: _p0._1, pressed: 0}),
+					_1: _IvantheTricourne$recurse_life$Main$getRandomGif(model.topic)
+				} : {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'ChangeTopic':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{topic: _p0._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				if (_p0._0.ctor === 'Ok') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{prevUrl: model.gifUrl, gifUrl: _p0._0._0}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				}
+		}
+	});
+var _IvantheTricourne$recurse_life$Main$Presses = F2(
+	function (a, b) {
+		return {ctor: 'Presses', _0: a, _1: b};
+	});
+var _IvantheTricourne$recurse_life$Main$subscriptions = function (model) {
+	return _elm_lang$keyboard$Keyboard$presses(
+		function ($int) {
+			return A2(_IvantheTricourne$recurse_life$Main$Presses, $int, model.topic);
+		});
+};
+var _IvantheTricourne$recurse_life$Main$ChangeTopic = function (a) {
+	return {ctor: 'ChangeTopic', _0: a};
+};
+var _IvantheTricourne$recurse_life$Main$MorePlease = {ctor: 'MorePlease'};
+var _IvantheTricourne$recurse_life$Main$view = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('container'),
+			_1: {
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '30px'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$h2,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Random GIF Generator'),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$a,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$href(_IvantheTricourne$recurse_life$Main$sourceCode),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('source code on GitHub'),
+						_1: {ctor: '[]'}
+					}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$hr,
+						{ctor: '[]'},
+						{ctor: '[]'}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$input,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$placeholder('What ya wanna see?'),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onInput(_IvantheTricourne$recurse_life$Main$ChangeTopic),
+									_1: {ctor: '[]'}
+								}
+							},
+							{ctor: '[]'}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$button,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(_IvantheTricourne$recurse_life$Main$PrevGif),
+									_1: {ctor: '[]'}
+								},
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html$text('<'),
+									_1: {ctor: '[]'}
+								}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$button,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Events$onClick(_IvantheTricourne$recurse_life$Main$MorePlease),
+										_1: {ctor: '[]'}
+									},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('>'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$br,
+										{ctor: '[]'},
+										{ctor: '[]'}),
+									_1: {
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$img,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$src(model.gifUrl),
+												_1: {ctor: '[]'}
+											},
+											{ctor: '[]'}),
+										_1: {ctor: '[]'}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		});
+};
+var _IvantheTricourne$recurse_life$Main$main = _elm_lang$html$Html$program(
+	{
+		init: _IvantheTricourne$recurse_life$Main$init(''),
+		view: _IvantheTricourne$recurse_life$Main$view,
+		update: _IvantheTricourne$recurse_life$Main$update,
+		subscriptions: _IvantheTricourne$recurse_life$Main$subscriptions
+	})();

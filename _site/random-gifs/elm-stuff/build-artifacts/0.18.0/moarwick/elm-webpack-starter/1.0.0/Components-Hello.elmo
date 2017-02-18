@@ -1,0 +1,18 @@
+var _moarwick$elm_webpack_starter$Components_Hello$hello = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('h1'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'Hello, Elm',
+					A2(_elm_lang$core$String$repeat, model, '!'))),
+			_1: {ctor: '[]'}
+		});
+};

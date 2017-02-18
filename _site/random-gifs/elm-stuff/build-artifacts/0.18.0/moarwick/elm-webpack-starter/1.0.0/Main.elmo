@@ -1,0 +1,254 @@
+var _moarwick$elm_webpack_starter$Main$decodeGifUrl = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'data',
+		_1: {
+			ctor: '::',
+			_0: 'image_url',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$string);
+var _moarwick$elm_webpack_starter$Main$url = 'https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=';
+var _moarwick$elm_webpack_starter$Main$Model = F3(
+	function (a, b, c) {
+		return {topic: a, pressed: b, gifUrl: c};
+	});
+var _moarwick$elm_webpack_starter$Main$NewGif = function (a) {
+	return {ctor: 'NewGif', _0: a};
+};
+var _moarwick$elm_webpack_starter$Main$getRandomGif = function (topic) {
+	return A2(
+		_elm_lang$http$Http$send,
+		_moarwick$elm_webpack_starter$Main$NewGif,
+		A2(
+			_elm_lang$http$Http$get,
+			A2(_elm_lang$core$Basics_ops['++'], _moarwick$elm_webpack_starter$Main$url, topic),
+			_moarwick$elm_webpack_starter$Main$decodeGifUrl));
+};
+var _moarwick$elm_webpack_starter$Main$init = function (topic) {
+	return {
+		ctor: '_Tuple2',
+		_0: A3(_moarwick$elm_webpack_starter$Main$Model, topic, 0, ''),
+		_1: _moarwick$elm_webpack_starter$Main$getRandomGif(topic)
+	};
+};
+var _moarwick$elm_webpack_starter$Main$update = F2(
+	function (msg, model) {
+		var _p0 = msg;
+		switch (_p0.ctor) {
+			case 'MorePlease':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: _moarwick$elm_webpack_starter$Main$getRandomGif(model.topic)
+				};
+			case 'Presses':
+				return _elm_lang$core$Native_Utils.eq(_p0._0, 13) ? {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{topic: _p0._1, pressed: 0}),
+					_1: _moarwick$elm_webpack_starter$Main$getRandomGif(model.topic)
+				} : {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+			case 'ChangeTopic':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{topic: _p0._0}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				if (_p0._0.ctor === 'Ok') {
+					return {
+						ctor: '_Tuple2',
+						_0: _elm_lang$core$Native_Utils.update(
+							model,
+							{gifUrl: _p0._0._0}),
+						_1: _elm_lang$core$Platform_Cmd$none
+					};
+				} else {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				}
+		}
+	});
+var _moarwick$elm_webpack_starter$Main$Presses = F2(
+	function (a, b) {
+		return {ctor: 'Presses', _0: a, _1: b};
+	});
+var _moarwick$elm_webpack_starter$Main$subscriptions = function (model) {
+	return _elm_lang$keyboard$Keyboard$presses(
+		function ($int) {
+			return A2(_moarwick$elm_webpack_starter$Main$Presses, $int, model.topic);
+		});
+};
+var _moarwick$elm_webpack_starter$Main$ChangeTopic = function (a) {
+	return {ctor: 'ChangeTopic', _0: a};
+};
+var _moarwick$elm_webpack_starter$Main$MorePlease = {ctor: 'MorePlease'};
+var _moarwick$elm_webpack_starter$Main$view = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('container'),
+			_1: {
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '30px'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+							_1: {ctor: '[]'}
+						}
+					}),
+				_1: {ctor: '[]'}
+			}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$h2,
+				{ctor: '[]'},
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html$text('Random GIF Generator'),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$input,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$placeholder('What ya wanna see?'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Events$onInput(_moarwick$elm_webpack_starter$Main$ChangeTopic),
+							_1: {ctor: '[]'}
+						}
+					},
+					{ctor: '[]'}),
+				_1: {
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$button,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Events$onClick(_moarwick$elm_webpack_starter$Main$MorePlease),
+							_1: {ctor: '[]'}
+						},
+						{
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$span,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$class('glyphicon glyphicon-star'),
+									_1: {ctor: '[]'}
+								},
+								{ctor: '[]'}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$span,
+									{ctor: '[]'},
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html$text('MOAR PLS!!!'),
+										_1: {ctor: '[]'}
+									}),
+								_1: {ctor: '[]'}
+							}
+						}),
+					_1: {
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$br,
+							{ctor: '[]'},
+							{ctor: '[]'}),
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$html$Html$img,
+								{
+									ctor: '::',
+									_0: _elm_lang$html$Html_Attributes$src(model.gifUrl),
+									_1: {ctor: '[]'}
+								},
+								{ctor: '[]'}),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$div,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$class('container'),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$style(
+												{
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'margin-top', _1: '30px'},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
+														_1: {ctor: '[]'}
+													}
+												}),
+											_1: {ctor: '[]'}
+										}
+									},
+									{
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$h4,
+											{ctor: '[]'},
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html$text('Instructions: '),
+												_1: {ctor: '[]'}
+											}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$p,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: _elm_lang$html$Html$text('1. Enter a topic in the field (or not)'),
+													_1: {ctor: '[]'}
+												}),
+											_1: {
+												ctor: '::',
+												_0: A2(
+													_elm_lang$html$Html$p,
+													{ctor: '[]'},
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html$text('2. Click \"MOAR PLS!!!\" or press Enter'),
+														_1: {ctor: '[]'}
+													}),
+												_1: {ctor: '[]'}
+											}
+										}
+									}),
+								_1: {ctor: '[]'}
+							}
+						}
+					}
+				}
+			}
+		});
+};
+var _moarwick$elm_webpack_starter$Main$main = _elm_lang$html$Html$program(
+	{
+		init: _moarwick$elm_webpack_starter$Main$init(''),
+		view: _moarwick$elm_webpack_starter$Main$view,
+		update: _moarwick$elm_webpack_starter$Main$update,
+		subscriptions: _moarwick$elm_webpack_starter$Main$subscriptions
+	})();

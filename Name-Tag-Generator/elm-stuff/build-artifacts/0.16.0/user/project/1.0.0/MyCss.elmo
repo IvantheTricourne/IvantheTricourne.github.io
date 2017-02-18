@@ -1,0 +1,45 @@
+Elm.MyCss = Elm.MyCss || {};
+Elm.MyCss.make = function (_elm) {
+   "use strict";
+   _elm.MyCss = _elm.MyCss || {};
+   if (_elm.MyCss.values) return _elm.MyCss.values;
+   var _U = Elm.Native.Utils.make(_elm),
+   $Basics = Elm.Basics.make(_elm),
+   $Css = Elm.Css.make(_elm),
+   $Css$Elements = Elm.Css.Elements.make(_elm),
+   $Css$Namespace = Elm.Css.Namespace.make(_elm),
+   $Debug = Elm.Debug.make(_elm),
+   $List = Elm.List.make(_elm),
+   $Maybe = Elm.Maybe.make(_elm),
+   $Result = Elm.Result.make(_elm),
+   $Signal = Elm.Signal.make(_elm);
+   var _op = {};
+   var primaryAccentColor = $Css.hex("ccffaa");
+   var Page = {ctor: "Page"};
+   var NavBar = {ctor: "NavBar"};
+   var css = function (_p0) {
+      return $Css.stylesheet(A2($Css$Namespace.namespace,
+      "dreamwriter",
+      _p0));
+   }(_U.list([$Css$Elements.body(_U.list([$Css.overflowX($Css.auto)
+                                         ,$Css.minWidth($Css.px(1280))]))
+             ,A2(F2(function (x,y) {    return A2($Css._op["#"],x,y);}),
+             Page,
+             _U.list([$Css.backgroundColor(A3($Css.rgb,200,128,64))
+                     ,$Css.color($Css.hex("CCFFFF"))
+                     ,$Css.width($Css.pct(100))
+                     ,$Css.height($Css.pct(100))
+                     ,$Css.boxSizing($Css.borderBox)
+                     ,$Css.padding($Css.px(8))
+                     ,$Css.margin($Css.zero)]))
+             ,A2(F2(function (x,y) {    return A2($Css._op["."],x,y);}),
+             NavBar,
+             _U.list([$Css.margin($Css.zero)
+                     ,$Css.padding($Css.zero)
+                     ,$Css.children(_U.list([$Css$Elements.li(_U.list([$Css.important($Css.display($Css.inlineBlock))
+                                                                      ,$Css.color(primaryAccentColor)]))]))]))]));
+   return _elm.MyCss.values = {_op: _op
+                              ,css: css
+                              ,NavBar: NavBar
+                              ,Page: Page};
+};
