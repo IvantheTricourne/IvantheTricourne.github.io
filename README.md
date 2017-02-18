@@ -1,6 +1,3 @@
-# Welcome to my GitHub.io page!
-<hr>
-
 My name is Carl Factora. I do some stuff. I just figured out about this
 today, so it's going to be a while before it gets interesting.
 
