@@ -18,7 +18,7 @@ I make no guarantees).
   * [Random GIF Generator](random-gifs/index.html)
   * [Name Tag Generator](Name-Tag-Generator/index.html)
 * **Other**:
-  * [Recurse Stream: Functional Programming](fp-posts/)
+  * [Recurse Stream: Functional Programming](_posts/)
 
 ### @TODO
 <hr>
