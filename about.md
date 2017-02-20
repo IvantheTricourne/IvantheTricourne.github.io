@@ -4,12 +4,17 @@ title: About
 permalink: /about/
 ---
 
-Some information about you!
+My name is Carl Factora. I'm a writer, mathematician, SSBM player and
+aspiring software developer.
 
-### More Information
+For some reason, you've found my GitHub.io page. This is relatively new,
+so it'll be a second before things get interesting here.
 
-A place to include any other types of information that you'd like to include about yourself.
+
+<!-- ### More Information -->
+
+<!-- A place to include any other types of information that you'd like to include about yourself. -->
 
 ### Contact me
 
-[email@domain.com](mailto:email@domain.com)
+[Gmail](mailto:cfactora93@gmail.com)
