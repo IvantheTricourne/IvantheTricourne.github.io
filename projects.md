@@ -1,10 +1,10 @@
 ---
 layout: page
-title: Project
+title: Projects
 permalink: /projects/
 ---
 
 Hello from local host!
 
-* ![Random GIF Generator](random-gifs)
-* ![Shine: Name Tag Maker](Name-Tag-Generator)
+* ![Random GIF Generator]({{ site.baseurl }}/random-gifs/index.html)
+* ![Shine: Name Tag Maker]({{ site.baseurl }}/Name-Tag-Generator/index.html)
