@@ -1,0 +1,15 @@
+-- The (simple) Hygenic-Name Tag Generator
+-- by Carl Factora
+
+Description:
+
+Parties are not just for having fun and enjoying food and drinks--they're also
+for meeting new people! Thus, a lot of parties incorporate the use of nametags
+to help ease the effort of necessary introductions between party goers. With the
+help of functional (reactive) programming, we can help further simplify the
+incorporation of nametags in parties by generating hygenic-name tags. With this,
+every party goer is given a unique nametag designed with a particular shape to
+associate with their unique identity as an individual! This also functions as a
+great and novel door-prize for attending the party.
+
+
