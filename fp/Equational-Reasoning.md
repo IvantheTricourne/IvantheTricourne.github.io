@@ -1,8 +1,10 @@
-First post hype!!!
-
-Posting a sample exercise about equational reasoning and its uses in functional programming. I've taken this from my notes as an instructor and student for Indiana University's "Advanced Functional Programming Course".
-
+---
+layout: page
+title: Equational Reasoning
+permalink: /equational-reasoning/
+---
 Consider the following definitions of `append` and `rev` in Haskell (one can, however, do this in any functional language).
+
 ```haskell
 append :: [a] -> [a] -> [a]
 append []     ys = ys

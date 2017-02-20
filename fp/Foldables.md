@@ -1,5 +1,8 @@
-Let's put the `fun` in *functional programming*!
-
+---
+layout: page
+title: Recursion Principles and Foldables
+permalink: /recursion-foldables/
+---
 Consider the definition of the simplest foldable data structure: the *Natural Number*!
 ```haskell
 data Nat = Zero
