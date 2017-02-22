@@ -1,49 +1,75 @@
 ---
-layout: post
+layout: page
 title: Intro - Starting Out, Nice and Easy
 permalink: /pl-intro/
 ---
 
 ### 1. Functional Programming?
-Functional Programming (FP) can be thought of simply as a method of writing computer programs where *specification* takes precedence over direct manipulation of computer-executable *instructions*.
+Functional Programming (FP) can be thought of simply as a method of writing computer programs where *specification* takes precedence over direct manipulation of computer memory and executable *instructions*.
 
-The latter of these is probably the more familiar paradigm of computer programming, as it is the primary idealogy behind programming languages like C, Java and Python. In these languages, programmers compose instructions for computers to execute and allow for the free manipulation of values stored within memory. For example, take the following code snippet written in Python:
+The latter of these is (probably) the more familiar concept of what computer programming is, as it is the primary idealogy behind languages like C, Java and Python. In these languages, programmers compose instructions for computers to execute and allow for the free manipulation (i.e., reading and writing) of values stored within memory. For example, let's take the following code snippet written in Python:
 ```python
 x = 3
 y = x + 2
 print(x, y)
 ```
-The above code executes from top to bottom (i.e., line by line). In this example, the value `3` is first stored in a variable named `x`. Afterwards, the computer reads the value stored in `x`, adds `2` to it, then stores the result of that computation in a variable named `y`. Finally, the computer then reads the values stored in `x` and in `y`, then prints them within a tuple, resulting in the value `(3, 5)` being printed onto the console.
+The above code executes from top to bottom, line by line. Given this, we can reason that the following occurs when the code is executed by a computer:
+1. The value `3` is stored inside a variable named `x`.
+2. The variable `x` is read from memory, the value `2` is added to it  and is stored in the new variable `y`.
+3. Both variables `x` and `y` are read from memory and stored inside a tuple, resulting in the value `(3, 5)` being printed onto the console.
 
-This example shows a simple program that executes in the manner that reflects *how* the program looks, which is just one benefit of writing in an *imperative* style. In imperative code, programs have an inherit *order* in which instructions are executed. However, in many other situations, writing in such a way can get rather verbose and dense, making reasoning about a program's correctness rather difficult (see *printf debugging*).
+With this, we can say that the code snippet *reflects* how a computer would peform the above computation until it ultimately produces its final value and exits. While in certain situations, a programmer might find this method of programming useful (indeed, *necessary* at times), programming in such a way is not always desirable.
 
-On the other hand, while functional languages don't (quite) offer the seamless access to computer memory and don't (necessarily) feature an inherit structure in the order in which code is executed, functional languages offer something unique and powerful that imperative languages do not.
-
-Let's take the standard (poster-child) example of functional programming: `quicksort`. Before, we provide our code example, let's recall how `quicksort` is implemented in an imperative language by writing some pseudocode:
+On the other hand, while functional languages don't (quite) offer the seamless access to computer memory and don't (necessarily) feature an inherit structure in the order in which code is executed (we'll get back to this point later), functional languages offer something unique and powerful that imperative languages do not. To prove our point, let's take the standard, poster-child example of functional programming: `quicksort`. Let's first recall how `quicksort` is implemented by writing some pseudocode:
 1. Choose a `pivot` element inside the given array/list
 2. Split the array into two new arrays, one containing elements less than `pivot` (`ls1`) and the other containing elements greater (`ls2`), arbitrarily breaking ties.
 3. Recur on both of the new lists to sort them.
 4. Place the `pivot` element in between the newly sorted lists (e.g. result = `ls1` + `pivot` + `ls2`).
 
-Now, let's see how to implement `quicksort` in Haskell:
+The above pseudocode, more or less, reflects how to implement `quicksort` inside of an imperative language. To do this, the programmer would essentially need to design the the individual *steps* on how to peform each of the above points, leading to some complex code being generated (especially depending on how one decides to do this). Now, let's see how to implement `quicksort` in Haskell, a purely, functional programming language:
 ```haskell
 quicksort :: (Ord a) => [a] -> [a]
 quicksort []     = []
 quicksort (x:xs) = xsLess ++ [x] ++ xsMore
-  where xsLess = quicksort [a | a <- xs, a <= x]
-        xsMore = quicksort [a | a <- xs, a > x]
+  where xsLess = quicksort (filter (<= x)  xs)
+        xsMore = quicksort (filter (> x) xs)
 ```
+Yes. 5 lines, and, with some inlining, we can compress the above definition down into 3 lines. Writing short code is, however, *not* the only reason to write in a language like Haskell. If we take the time to study the code above, we can see that it's designed *not* as a step-by-step instruction of what a computer should do to peform the intended computation but more as a *specification* of what the computation itself is supposed to do. In this, as programmers of functional language, we do not need to worry about what the computer needs to do but only on designing the proper logic around our given program so that it peforms as intended.
 
-* ease
-* polymorphism (reuse)
-* expressibility (abstraction and specification)
+We won't go into much more detail about the diffferences of imperative and functional code (this is, in fact, only the *intro* chapter). For now, we just want to say that there are clear benefits and pitfalls in designing computer programs in both manners of writing code.
 
 ### 2. What We're Doing Here
 This is **Пroject λamp** (PL), a simple, down to earth introduction to the vast and ever-expanding world of functional programming. This project can be thought of as a tutorial into the core concepts of languages that feature some functional programming ideals and as well as those that rely heavily on them.
 
-For this book, we are using the *PureScript* programming language, which can be thought of as a flavor of *Haskell* (a popular general purpose, purely functional language). Unlike Haskell, PureScript is intended for use as a *JavaScript replacement*, giving us the needed flexibility for developing a browser-based teaching tool that not only *teaches* functional programming but also allows users to interact with working code within their browser. This takes direct inspiration from *Eloquent JavaScript*, which provides much of the same utility for learning the JavaScript programming language.
-		
-* not a book about purescript (there's already one for that!)
-* this is a book for those who learn better through hands-on experience (we believe this as an effective method of teaching FP since it requires a lot of mindset and methodlogy)
+For this book, we are using the *PureScript* programming language, a flavor of Haskell. Unlike Haskell, PureScript is intended for use as a *JavaScript replacement*, giving us the needed flexibility for developing a browser-based teaching tool that not only *teaches* functional programming but also allows users to interact with working code within their browser. This takes direct inspiration from *[Eloquent JavaScript](http://eloquentjavascript.net/)*, which provides much of the same utility for learning the JavaScript programming language.
 
-### 3. How to Use this Book (EXERCISES!)
+We must clarify that this book is **not** a book that teaches PureScript (one can find that [here](https://leanpub.com/purescript/read)). Our goal is to provide a seamless and hands-on experience of learning functional languages (like Haskell and PureScript), because we believe that this manner of learning is something of great value, especially when it comes to learning functional programming and its core concepts and ideals.
+
+### 3. How to Use this Book
+Throughout this book, one will find *many* code examples, most of which are written in PureScript (sometimes made to look like Haskell) and all of which are user-interactable. That is, if one should desire to mess around with the given examples, one is free to do so!
+
+It should be mentioned, however, that, unlike a language like JavaScript, a purely functional language does not have easy access to *effectful computations*, the simplest example of which is `print`. To those more familiar with languages that allow the free-reign usage of `print` functions, this might take some getting used to. One should not be too wary, as functional languages offer something that is also quite useful (some would argue *more* so) that one will learn here, bringing us to our next point.
+
+In this book, we let **exercises** do the talking, a liberty that is present due in part to an advantage of certain functional languages. We hope that the reader will soon come to understand what we mean by this.
+
+### Exercises:
+```haskell
+---| 1. Take a look at the definition of quicksort
+quicksort :: forall a. (Ord a) => List a -> List a
+quicksort Nil    = Nil
+quicksort (x:xs) = xsLess <> (singleton x) <> xsMore
+  where xsLess = quicksort (filter (\a -> a <= x) xs)
+        xsMore = quicksort (filter (\a -> a > x) xs)
+```
+What do you suppose the first line of the code (called the *type declaration*) says about this function? What kinds of `lists` that this function work with?
+
+```haskell
+---| 2. Write the proper type declaration for the following:
+
+-- here
+id x = x
+
+-- here
+const x y = x
+```
+**HINT**: Look back at exercise 1. What does the variable `a` mean inside of the type declaration for `quicksort`?

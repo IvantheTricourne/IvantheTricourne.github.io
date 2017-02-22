@@ -7,9 +7,6 @@
 <loc>http://localhost:4000/about/</loc>
 </url>
 <url>
-<loc>http://localhost:4000/pl-1/</loc>
-</url>
-<url>
 <loc>http://localhost:4000/equational-reasoning/</loc>
 </url>
 <url>
@@ -20,6 +17,9 @@
 </url>
 <url>
 <loc>http://localhost:4000/</loc>
+</url>
+<url>
+<loc>http://localhost:4000/pl-intro/</loc>
 </url>
 <url>
 <loc>http://localhost:4000/projects/</loc>
