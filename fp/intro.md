@@ -61,7 +61,7 @@ quicksort (x:xs) = xsLess <> (singleton x) <> xsMore
   where xsLess = quicksort (filter (\a -> a <= x) xs)
         xsMore = quicksort (filter (\a -> a > x) xs)
 ```
-What do you suppose the first line of the code (called the *type declaration*) says about this function? What kinds of `lists` that this function work with?
+What do you suppose the first line of the code (called the *type declaration*) says about this function? What kinds of `lists` does this function work with?
 
 ```haskell
 ---| 2. Write the proper type declaration for the following:
