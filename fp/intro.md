@@ -1,12 +1,8 @@
 ---
 layout: post
-title: Chapter 1 - Starting Out, Nice and Easy
-permalink: /pl-1/
+title: Intro - Starting Out, Nice and Easy
+permalink: /pl-intro/
 ---
-
-@TODO
-1. Not a book that teaches PureScript, but teaches FP
-2. 
 
 ### 1. Functional Programming?
 Functional Programming (FP) can be thought of simply as a method of writing computer programs where *specification* takes precedence over direct manipulation of computer-executable *instructions*.
@@ -40,14 +36,14 @@ quicksort (x:xs) = xsLess ++ [x] ++ xsMore
 
 * ease
 * polymorphism (reuse)
-* (3) below
-
+* expressibility (abstraction and specification)
 
 ### 2. What We're Doing Here
 This is **Пroject λamp** (PL), a simple, down to earth introduction to the vast and ever-expanding world of functional programming. This project can be thought of as a tutorial into the core concepts of languages that feature some functional programming ideals and as well as those that rely heavily on them.
 
 For this book, we are using the *PureScript* programming language, which can be thought of as a flavor of *Haskell* (a popular general purpose, purely functional language). Unlike Haskell, PureScript is intended for use as a *JavaScript replacement*, giving us the needed flexibility for developing a browser-based teaching tool that not only *teaches* functional programming but also allows users to interact with working code within their browser. This takes direct inspiration from *Eloquent JavaScript*, which provides much of the same utility for learning the JavaScript programming language.
 		
+* not a book about purescript (there's already one for that!)
+* this is a book for those who learn better through hands-on experience (we believe this as an effective method of teaching FP since it requires a lot of mindset and methodlogy)
 
-### 3. Everything is a Value
-### 4. Exercises
+### 3. How to Use this Book (EXERCISES!)
