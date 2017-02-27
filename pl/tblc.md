@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Project Lamp - Table of Contents
-permalink: /table-of-contents/
+permalink: /pl-contents/
 ---
 
 * [Introduction]({{ site.baseurl }}/pl-intro)
