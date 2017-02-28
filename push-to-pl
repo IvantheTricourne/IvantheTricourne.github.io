@@ -1,0 +1,10 @@
+#!/bin/bash
+
+echo "Syncing PL Repo..."
+cd ~/Work/project-lamp/ && git pull
+
+echo "!! Copying content from blog to pl folder..."
+cd ~/Work/blog && cp pl/* ../project-lamp/book
+
+echo "!! Finishing..."
+cd ~/Work/project-lamp/ && git a book && git ci -m 'lazy commit from blog' && git po
