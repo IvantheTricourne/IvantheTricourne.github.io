@@ -7,6 +7,9 @@
 <loc>http://localhost:4000/about/</loc>
 </url>
 <url>
+<loc>http://localhost:4000/pl-chp1/</loc>
+</url>
+<url>
 <loc>http://localhost:4000/equational-reasoning/</loc>
 </url>
 <url>
@@ -26,6 +29,9 @@
 </url>
 <url>
 <loc>http://localhost:4000/projects/</loc>
+</url>
+<url>
+<loc>http://localhost:4000/pl-contents/</loc>
 </url>
 <url>
 <loc>http://localhost:4000/Name-Tag-Generator/elm-stuff/packages/rtfeldman/elm-css/2.2.0/index.html</loc>
