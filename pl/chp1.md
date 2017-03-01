@@ -158,6 +158,59 @@ Up until now, we haven't mentioned the pecuilarities of the `Boolean` type in Pu
 isEmpty false = false
 ```
 #### c. The Lord of the Foos -- Polymorphism
+One might be thinking, *"Gee, all this stuff about types is cool and all, but I'm going to miss be able to define a few functions that work for multiple different inputs!"* Indeed, in an untyped functional language, one has the liberty of writing *one* function that accepts every possible input. Take, for example, Racket, an untyped, impure functional language, where one has the liberty of writing functions such as the ones below:
+```racket
+(define (add1 n) (+ n 1))
+(define (sub1 n) (- n 1))
+```
+These functions work for every possible input, like the ones (i.e., *number*-like values) that one should want them to work for. The problem with this, however, is that *they work for every possible input!* One is not constrained at all to write `(add1 "Banana")`, which results in a *contract violation* (which is similar to a type error but fundamentally different):
+```racket
+add1: contract violation
+  expected: number?
+  given: "Banana"
+```
+In this simple example, it's easy to see where one incorrectly used the function `add1`, but in more complex situations, for example if one used `add1` multiple times in one's program, it can be become rather difficult to determine where/how the actual error occurred.
+
+*"I'll just program correctly then,"* one might be thinking. Quite.
+
+The truth of the matter is that statically typed functional languages *still* allow one to define functions similar to `add1` and `sub1` but in a way that prevents the headache caused by the lack of types. This is where *polymorphism* comes in handy.
+
+In the introduction of this book, one might have seen the functions `id` and `const`. We include them now below with their respective types:
+```haskell
+id :: forall a. a -> a
+id x = x
+
+const :: forall a b. a -> b -> a
+const x y = x
+```
+These functions work for *every* possible input, as they represent the polymorphic functions of the λ-calculus known as the *identity* and *constant* combinators. They, in fact, *should* work for all possible inputs, which is precisely what their type declarations say. That is, `id` takes an `a` and returns an `a`, where `a` can be *any* type. In the case of `const`, `a` and `b` are also of *any* type that can be distinct from one another (i.e., they don't necessarily have to be). The distinction is made solely for the reason to specify that `const` returns an element of the same type as its first argument.
+
+**Note**: When it comes to polymorphic functions, there is less flexibility and variance in how to construct return values. For example, the only way that `id` and `const` can return an `a` is by returning their first argument. This is because, in general, it is imossible to return an element of an arbitrary type, unless one already has said element at their disposal.
+
+Aside from being able to write functions that work over *all* inputs, we can also write polymorphic functions that work for a *smaller* number of inputs. We do this using what are known as *type-classes*. Returning to another example given in the introduction, we defined `quicksort`, which has the type:
+<!-- do not make this interactable!! -->
+```haskell
+forall a. (Ord a) => List a -> List a
+```
+This means that `quicksort` works for *any* `List` type, given that the elements of said list contains elements of the `Ord` class, which are elements that can be compared using `==`, `<`, `<=`, `>` and `>=`. This relieves one from having to write `quicksort` that works for lists containing *non-sortable* elements. Using type classes to constrain function inputs also gives one access to the pre-defined functions of the given class!
+
+Thanks to polymorphism, we can now define a more *general* `List` type, as opposed to having to define a new `List` type for *every* other type we would want to put into lists. This type comes pre-defined in PureScript, but for the sake of clarity, we include a synonymous type:
+```haskell
+data AllList a = AllEmpty
+               | AllPush a (AllList a)
+
+intList :: AllList Int
+intList = AllPush 1 (AllPush 2 AllEmpty)
+
+boolList :: AllList Boolean
+boolList = AllPush true (AllPush false AllEmpty)
+```
+We can also now define a function similar to `isEmpty` that works for every possible iteration of `AllList`, regardless of the type of elements the given `AllList` actually contains:
+```haskell
+isAllEmpty :: forall a. AllList a -> Boolean
+isAllEmpty AllEmpty       = true
+isAllEmpty (AllPush x xs) = false
+```
 
 ### 3. Recursion and its Principles
 
@@ -167,7 +220,7 @@ isEmpty false = false
 ### Exercises:
 <!-- TODO:
 
-append-reverse
+note on different types of errors and successes
 define shapes, write a function
 left and right folds
 
