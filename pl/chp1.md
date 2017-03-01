@@ -205,7 +205,7 @@ intList = AllPush 1 (AllPush 2 AllEmpty)
 boolList :: AllList Boolean
 boolList = AllPush true (AllPush false AllEmpty)
 ```
-We can also now define a function similar to `isEmpty` that works for every possible iteration of `AllList`, regardless of the type of elements the given `AllList` actually contains:
+We can also now define a function similar to `isEmpty` that works for every possible iterations of `AllList`, regardless of the type of the elements the given `AllList` actually contains:
 ```haskell
 isAllEmpty :: forall a. AllList a -> Boolean
 isAllEmpty AllEmpty       = true
@@ -213,8 +213,77 @@ isAllEmpty (AllPush x xs) = false
 ```
 
 ### 3. Recursion and its Principles
+We end this chapter with an overview of writing in a *recursive style*. The idea of recursion is not unique to functional languages, as recursion is central and fundamental to all computer programming. As we mentioned in the introduction of this book, there are stark differences in the way that imperative and functional programs are written, which can be seen quite clearly in how a functional language incorporates a certain style of recursion while an imperative languge incorporates and encourages recursion via recursive constructs like `for` and `while`, which are (basically) abset in *purely* functional programs.
 
 #### a. Over, and Over, and Over, and Over...
+Put simply, a recursive program is a program that performs a certain *repeated* computation. There are many reasons why one would do this, and one would not really get very far without having to write a recursive program.
+
+Let's start with a simple program written in Python:
+```python
+sum = 0
+arr = [1,2,3,4,5]
+for elem in arr:
+  sum += elem
+print sum
+```
+Here, we have an array, `arr`, and calculate the sum of its elements. The way that we achieve this is by iterating over the elements in `arr` using a `for` loop, individually adding each element in the array and add them to `sum`. If we were to translate this program directly into PureScript, we would find that we are missing the ability to *loop* over a structure. To do this in a functional language, we would be required to abstract over the *stateful* computation that happens when `sum` is updated in each iteration of the `for` loop. While this is indeed possible, it is by far *not* the simplest way to do so (we return to this idea in [Chapter 3]()).
+
+In a functional language, we instead have the ability to write a recursive function that performs a *step-wise* computation. This style of writing follows a certain pattern:
+
+1. Determine a base case -- *When should the computation end, and what should it do then?*
+2. Determine what computation to do *repeatedly* until the base case is reached.
+
+In the case of *list-like* structures, such as an array, we associate `(1)` and `(2)` with the cases that the given structure is *empty* and when its not. Thus, we know that writing a function to recur over a similar structure must *at least* cover both cases. In this case, we use pattern matching!
+
+Now, let's write a function that sums the elements of a list. For simplicity and to model the Python program above, we constrain the input of this function to lists of `Int`:
+```haskell
+sum :: List Int -> Int
+sum Nil    = 0            -- base case
+sum (x:xs) = x + (sum xs) -- repeated computation
+```
+Let's take the time to digest what exactly is going on in this function.
+
+In the first line, we define our function's *base-case*. This means that we determine that our recursive computation should end when the given list is empty, in which case we return the value `0`. Furthermore, this also follows the logic that the sum of an empty list of `Int` is `0`.
+
+In the second line, we define what our function should do in the event that there is more work to be done (i.e., when the given list is *not* empty). If we inspect the type of `x` and `xs`, we find that `x` is an `Int` and `xs` is a `List Int`. Logically, we would want to sum over the list we have, `xs`, by passing it to `sum` (effectively, recurring over `xs`). Doing so provides the *rest* of the computation and according to the type definiton of `sum` results in an `Int`. We would then want to add `x` to the result of summing the rest of the elements to implement the proper behavior of the function.
+
+To make the behavior of this function clearer, we can *trace* each step in the computation by performing a β-reduction. For example, if we call `sum` on the list `(1:2:3:4:5:Nil)`, we get the following reduction:
+```
+sum (1:2:3:4:5:Nil)
+== 1 + (sum (2:3:4:5:Nil))
+== 1 + (2 + (sum (3:4:5:Nil)))
+== 1 + (2 + (3 + (sum (4:5:Nil))))
+== 1 + (2 + (3 + (4 + (sum (5:Nil)))))
+== 1 + (2 + (3 + (4 + (5 + (sum Nil)))))
+== 1 + (2 + (3 + (4 + (5 + 0))))
+== 1 + (2 + (3 + (4 + 5)))
+== 1 + (2 + (3 + 9))
+== 1 + (2 + 12)
+== 1 + 14
+== 15
+```
+`15`! That's precisely the answer we were looking for! Mission accomplished.
+
+But wait! One might have noticed that this reduction is a bit long (especially for the simple act of summing the elements of a list). This verbosity is actually the reason for why many imperative languages avoid using recursion: it's very memory heavy. That is, the fact that computation *waits* (i.e., the `1` isn't added until the very end of the computation) reflects how a recursive program consumes a significant amount of memory when compared to a program written in an iterative style.
+
+However, we can alleviate the memory strain by making a small change. Instead of adding individual list elements to the *remaining* computation, we can use an *accumulator* and add elements to it instead (which is precisely how the Python program above uses the `sum` variable). This style of writing recursive programs is known as *accumulator passing style* (APS). We provide the alternative definition of a summing function, `sumAcc` and as well as its resulting reduction trace. Here, we also show how to define internal helper functions, `sumAcc'` (read as `sumAcc` *prime*), in PureScript using the `where` construct.
+```haskell
+sumAcc :: List Int -> Int
+sumAcc xs = sumAcc' 0 xs
+  where sumAcc' acc Nil    = acc
+        sumAcc' acc (x:xs) = sumAcc' (acc + x) xs
+```
+```
+sumAcc (1:2:3:4:5:Nil)
+== sumAcc' 0 (1:2:3:4:5:Nil)
+== sumAcc' (0 + 1) (2:3:4:5:Nil)
+== sumAcc' (1 + 2) (3:4:5:Nil)
+== sumAcc' (3 + 3) (4:5:Nil)
+== sumAcc' (6 + 4) (5:Nil)
+== sumAcc' (10 + 5) Nil
+== 15
+```
+
 #### b. The Essence of Recursion -- Fold
 
 ### Exercises:
