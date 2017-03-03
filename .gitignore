@@ -1,4 +1,2 @@
-/_site/*
-/_site/*.xml
-/_site/*/*
-.sass-cahe/
+_site
+.sass-cache
