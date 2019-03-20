@@ -14,4 +14,4 @@ my work getting merged. Hoorah for less technical debt.
 
 I feel like _code review_ is a highly underrated, under appreciated part
 of the work we do. Code review necessarily takes a long time, especially
-for code that you _also_ tasked to maintain.
+for code that you are _also_ tasked to maintain.
