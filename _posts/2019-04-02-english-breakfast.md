@@ -1,7 +1,7 @@
 ---
 layout: post
 date: 2019-04-02
-title: english breakfast
+title: english breakfast.
 ---
 
 I managed to fall asleep around 9pm last night, mainly trying to
