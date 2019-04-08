@@ -14,7 +14,9 @@ _attachment_ to occur--look forward to a full write up on the London
 experience! London is quite great; I think I could get used to this place,
 but as of right now... there are _no_ plans to leave NYC.
 
-Here's a picture of Big Ben in his "case":
+Here's a picture of
+[Big Ben](https://en.wikipedia.org/wiki/Big_Ben)
+in his "case":
 ![it's okay for now](/images/big-ben.jpeg)
 
 I'll leave it off with saying that I'm working on improving my process of
