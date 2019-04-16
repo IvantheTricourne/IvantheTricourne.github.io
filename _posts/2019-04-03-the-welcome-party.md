@@ -4,6 +4,14 @@ date: 2019-04-16
 title: welcome party.
 ---
 
+I actually started writing this post quite a while ago after
+just being 2 days in London. So, given that the trip a little
+under 2 weeks in total, I have quite a bit more to say about
+it, and a lot of the thoughts I initially had have evolved
+as well. I'm sort of making it my point to write up my
+experience in the best (most accurate) way possible--for my
+own benefit to remember it and for others to consider.
+
 <!-- I have quite a bit to say about the last few hours, but I, unfortunately, -->
 <!-- will probably not have the most time to say it all (I also have sprint -->
 <!-- related things I need to spend the majority of my time on). So, I have -->
@@ -12,11 +20,14 @@ title: welcome party.
 <!-- retrospective thoughts I'll write about the matter, but I'll leave those -->
 <!-- for the next few days as they continue to stew in my head. _*deep breath*_ -->
 
-I had some time today to come back to some thoughts I had regarding my
-recent trip to London. I actually started writing this post quite a while
-ago (after just being 2 days in the city). So, given that the trip was in
-total a little under 2 weeks long, I have quite a bit more to say, and a
-lot of the thoughts I initially had have evolved as well.
+To give a little bit of background, I've been working at my
+current company (Droit) for almost 2 years. This was job was
+also my first job, so part of my learning experience was
+learning what it meant to have a job in the software industry.
+Having now the experience in 2 different _job environments_
+(within the same company), I have a lot of thoughts (mostly
+questions) concerning the stark difference and similarities
+between the 2.
 
 A rough outline of high-level thoughts:
 
@@ -81,8 +92,4 @@ both. Naturally, different people will react differently, but I strongly
 believe that the company should make a strong effort in making this a norm,
 and not just for a select, privileged few. _Everyone should feel incentive
 
-### _lights will guide you home_
-
 ![the walk back](/images/the-aftermath.jpg)
-
-Even if it's the last thing I do, I want to close the disparity.
