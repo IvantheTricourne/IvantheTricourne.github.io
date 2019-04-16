@@ -1,16 +1,22 @@
 ---
 layout: post
-date: 2019-04-03
+date: 2019-04-16
 title: welcome party.
 ---
 
-I have quite a bit to say about the last few hours, but I, unfortunately,
-will probably not have the most time to say it all (I also have sprint
-related things I need to spend the majority of my time on). So, I have
-made it my point to at least try and jot some of my thoughts down before
-they completely melt away. There will probably be quite a few more
-retrospective thoughts I'll write about the matter, but I'll leave those
-for the next few days as they continue to stew in my head. _*deep breath*_
+<!-- I have quite a bit to say about the last few hours, but I, unfortunately, -->
+<!-- will probably not have the most time to say it all (I also have sprint -->
+<!-- related things I need to spend the majority of my time on). So, I have -->
+<!-- made it my point to at least try and jot some of my thoughts down before -->
+<!-- they completely melt away. There will probably be quite a few more -->
+<!-- retrospective thoughts I'll write about the matter, but I'll leave those -->
+<!-- for the next few days as they continue to stew in my head. _*deep breath*_ -->
+
+I had some time today to come back to some thoughts I had regarding my
+recent trip to London. I actually started writing this post quite a while
+ago (after just being 2 days in the city). So, given that the trip was in
+total a little under 2 weeks long, I have quite a bit more to say, and a
+lot of the thoughts I initially had have evolved as well.
 
 A rough outline of high-level thoughts:
 
