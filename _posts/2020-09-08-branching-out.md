@@ -8,7 +8,7 @@ Well, it's been a hot minute since I've last posted anything on _ye olde blog_. 
 
 I've started running my own personal 
 [_SSBM tournament series_](https://smash.gg/tournament/4skinz-sundaez-2-5)
-with my buddies, the first of which was hilariously under prepared. Given that this is more or less expected, I've currently restricted the attendees to a small set of individuals (i.e., my SSBM buddies who help run the tournament), but nonetheless I learned quite a few lessons on how to properly run a tournament. Eventually, I hope to open the doors when things feel more... _prepared_. With that said, I've decided to slowly go through the list of improvements I've laid out in my head starting with adding a **set count visualization app** which is 
+with my buddies, the first of which was hilariously under prepared. Given that this was more or less expected, I've currently restricted the attendees to a small set of individuals (i.e., my SSBM buddies who help run the tournament), but nonetheless I learned quite a few lessons on how to properly run a tournament. Eventually, I hope to open the doors when things feel more... _prepared_. With that said, I've decided to slowly go through the list of improvements I've laid out in my head starting with adding a **set count visualization app** which is 
 [hosted here]({{ site.baseurl}}/set-count-app/index.html)
 in my personal IO page.
 
@@ -23,5 +23,6 @@ and mostly using the
 [`elm-ui`](https://package.elm-lang.org/packages/mdgriffith/elm-ui/1.1.8/) 
 library. Thus far, I've had a lot of fun writing it, and it has quickly reignited my curiosity in writing Elm stuff. For those curious, I've also left the project entirely open source. Check it out 
 [here](https://github.com/IvantheTricourne/elm-set-count).
+There's still quite a bit of tweaking I want to do before calling it a "finished product".
 
 Yep. That's pretty much it for now.
