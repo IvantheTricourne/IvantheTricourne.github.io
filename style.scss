@@ -156,7 +156,7 @@ img {
 
 .masthead {
   padding: 20px 0;
-  border-bottom: 1px solid $lightGray;
+  border-bottom: 0px solid $lightGray;
 
   @include mobile {
     text-align: center;
@@ -260,7 +260,7 @@ nav {
     font-size: 22px;
     font-style: italic;
   }
-
+  
   .comments {
     margin-top: 10px;
   }
@@ -273,9 +273,9 @@ nav {
 
 .wrapper-footer {
   margin-top: 50px;
-  border-top: 1px solid #ddd;
-  border-bottom: 1px solid #ddd;
-  background-color: $lightGray;
+  border-top: 0px solid #ddd;
+  border-bottom: 0px solid #ddd;
+  background-color: $white;
 }
 
 footer {
