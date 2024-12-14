@@ -8,7 +8,7 @@ I'm currently a Software Engineer at
 [Bloomberg](https://foam.space/company).
 
 Previously, I worked at
-[Foamspace]((https://foam.space/company)
+[Foamspace](https://foam.space/company)
 designing a decentralized proof of location protocol on the Ethereum blockchain.
 Before that, I was at
 [Droit](https://droit.tech/)
