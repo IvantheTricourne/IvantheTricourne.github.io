@@ -5,7 +5,7 @@ permalink: /about/
 ---
 
 I'm currently a Software Engineer at 
-[Bloomberg](https://foam.space/company).
+[Bloomberg](https://www.bloomberg.com/company/).
 
 Previously, I worked at
 [Foamspace](https://foam.space/company)
