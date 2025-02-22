@@ -1,10 +1,11 @@
-# My Github.io Page
+# io page
 
-yeah... [Go to site](https://ivanthetricourne.github.io)
+* [Github.io site](https://ivanthetricourne.github.io)
+* [IPFS supported site](https://ivanthetricourne.io/)
 
-## build this site
+## Build
 
-You first need [Jekyll](https://jekyllrb.com/docs/).
+Install [Jekyll](https://jekyllrb.com/docs/).
 
 Then, install `jekyll-sitemap` and `jekyll-feed` with `gem`:
 
