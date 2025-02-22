@@ -1,0 +1,21 @@
+---
+layout: post
+date: 2025-02-22
+title: who are we now?
+---
+
+In typical fashion, I've neglected my efforts to get consistent writing done. The last post on here was already a few months ago, and it's been even longer since I've journaled. It's almost as if all this time has passed without much thought or reflection, which couldn't be further from the truth. I've simply neglected to write any of it down, and that's something that's a bit of a shame. I've been at my current role at Bloomberg for almost a year now, and I've yet to write anything about it on here. Maybe that's a good place to start.
+
+About a month ago, I got another opportunity to travel to the _land of tea and biscuits_ (a.k.a. London, England). I'm not really sure if much has changed about London, but it was nearly 8 years ago since the last time I skipped the proverbial pond. I can't pinpoint why, but this time felt different, and perhaps that's because of my own _evolved_ perspectives (viz. _I'm getting old_). I never got around to writing anything formal about my 1st trip to London, but here I am now writing something off the cuff about my 2nd time.
+
+Unlike my 1st trip, the trip was only for a week. It would have been interesting to stay for longer, but I was getting pretty homesick near the end of it. The entire trip was filled with many emotions, most of which I've perhaps continued to neglect acknowledging or processing properly. That's something I'm working on, and perhaps I could do with less _supplementation_ in doing so. Every single night of the trip featured copious amounts of my choice of scotches, which is something I've recently acquired a somewhat decent taste for. Getting to know my co-workers across the pond, inebriated or otherwise, was something quite valuable to me, and echoed a lot of the same sentiment that I had in my 1st trip with my old team: New York and London have exceptionally different work cultures. Regardless, the true value of these kinds of business trips is establishing a sense of camaraderie. This sense or feeling is truly key for properly taking root in an unfamiliar environment, whether it's a foreign country or a new company or both.
+
+![Bloomberg QVS](/images/bbg-qvs.jpg)
+
+As of writing, I'm 9 months into my tenure at Bloomberg. In some ways, I definitely feel more established and capable of handling the majority of my day-to-day tasks. Yet, in many others, I still feel foreign and perhaps alien. The new environment and work culture are something that will probably take a bit more time to fully accept. I still think about my days at FOAM and my old team. I'm grateful to say that I can look back with fondness at the thought of working with them, despite all the issues that came up near the tail end of that chapter in my life. With Bloomberg, I've gotten new opportunities to relive and rekindle my past passions, the most significant of which is giving a talk at the OCaml summit.
+
+The summit was a celebration of all things OCaml. I felt the overwhelming support and passion from the internal OCaml community and teams we have at work. It was inspiring and motivated me to push for more and better things for the benefit of the rest of the community. I didn't think I'd get another chance in my professional career to return to my academic roots, especially so soon. I'm grateful to work for a company that encourages knowledge sharing and even celebrates doing so. That was something sorely missing from my previous roles in companies that couldn't regularly support such endeavors.
+
+![OCaml Summit](/images/ocaml-summit.jpg)
+
+Despite all the good things I can say about my current role at Bloomberg, there is another side to that same coin. All the time I spent in the recent past thinking that there wasn't much more out there for me is now a reality shattered by my future potential. In this reality, when one's glass ceiling is shattered and the realm of possibilties is opened above, one may look up and witness the clear skies, but not without risk of some shards falling in sensitive places. Just as if it was like staring into the void, it's gotten me to question who it is that I think I am and whether or not I've been in a self-perpetuated loop of lying to myself about my happiness and what I want in life.
