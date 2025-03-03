@@ -8,8 +8,6 @@
 
 Install [Jekyll](https://jekyllrb.com/docs/).
 
-Then, install `jekyll-sitemap` and `jekyll-feed` with `gem`:
-
-`sudo gem install jekyll-sitemap jekyll-feed`
+Install some ruby gem: `sudo gem install jekyll-sitemap jekyll-feed jekyll-paginate`
 
 Serve locally via `jekyll serve`.
