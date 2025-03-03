@@ -1,0 +1,13 @@
+---
+layout: post
+date: 2025-03-01
+title: March Post
+---
+
+Recently got back into reading some Tolkein. More specifically, I'm actually trying out listening to other things other than music during tense, focus driven moments. I've really found that I can't listen to music whenever my focus needs to be turned up and cranked to maximum. It's a quite unfortunate really; music is such a beautiful source of inspiration and motivation, yet here I am sitting in the silence of my own head, terrified of what might be creeping just around the corner.
+
+This last week I went through a bit of a bracket gauntlet with the homies. I personally attended 3 Melee tournaments in a single week, and, admittedly, I don't feel even the slightest bit burned out. I expressed it openly that this level of competition has become a sort of coping mechanism for the amount of stress I'm dealing with at work. As much as I hate to admit that work is stressing me out, there really isn't much else I can do about it other than continue to cope that it will all eventually die down a little bit. I really hope that's the case.
+
+My mental health has really taken a bit of a dive in the last few months, and I don't think that's entirely due to the amount of stress that I'm going through at work. I am conscious and aware enough at this point to admit that there's definitely more in the picutre that's making me feel the way that I do. The question is whether or not there's anything I can confidently do to address it at this point, to which I can currently say is far from plausible reality. I've hinted at it before here, but I really don't think now is the time to try and be a hero about it. I don't think anything is going to be done about it at this juncture, but maybe in the future I'll have enough courage to face it head on. Maybe after a few hard thinking sessions, I'll have the courage to write about it here.
+
+There's a bit of irony here. Tolkein's LOTR is heavy on the themes of fate, destiny and chance, the latter of which is something beyond even the greatest of beings. We all fall prey to chance, and by chance, I am here where I am today. I don't think I can chalk it up to destiny or fate, because I don't think either of those are really how I perceive how I got where I am. It's all happenstance and chance that got me to where I am. It's a lot of hardwork, but an undeniable amount of luck is definitely involved.
