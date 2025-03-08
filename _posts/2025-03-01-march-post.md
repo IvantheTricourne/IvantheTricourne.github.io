@@ -1,7 +1,7 @@
 ---
 layout: post
 date: 2025-03-08
-title: March Post
+title: march musings
 ---
 
 Recently got back into reading some Tolkein. More specifically, I've been listening to the audiobook version narrated by Andy Serkis on my way to work. I've been experimenting with listening to other things other than music during tense, focus driven moments, which, for some reason, I personally include my morning commute to be a part of. I've really found that I can't listen to music whenever my focus needs to be turned up and cranked to maximum. It's a quite unfortunate really; music is such a beautiful source of inspiration and motivation, yet I constantly find myself sitting in the silence of my own head, without much acknowledgement or perhaps with much denial of what might be creeping just around the corner.
