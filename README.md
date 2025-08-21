@@ -8,6 +8,15 @@
 
 Install [Jekyll](https://jekyllrb.com/docs/).
 
-Install some ruby gem: `sudo gem install jekyll-sitemap jekyll-feed jekyll-paginate`
+Install the gem deps:
+```sh
+make install
+```
 
-Serve locally via `jekyll serve`.
+## Usage
+
+To serve the site locally:
+
+```sh
+make serve
+```
