@@ -21,8 +21,9 @@ pagination:
       <div class="entry">
         {{ post.excerpt }}
       </div>
-
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">read more</a>
+      <div class="read-more-btn-container">
+        <a href="{{ site.baseurl }}{{ post.url }}" class="read-more-btn-shared" title="Read more">&lt;&gt;</a>
+      </div>
     </article>
   {% endfor %}
 
@@ -30,17 +31,13 @@ pagination:
     Showing buttons to move to the next and to the previous list of posts (pager buttons).
   -->
   {% if paginator.total_pages > 1 %}
-  <ul class="pager">
-      {% if paginator.previous_page %}
-      <li class="previous">
-          <a href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//', '/' }}">&larr; Newer Posts</a>
-      </li>
-      {% endif %}
-      {% if paginator.next_page %}
-      <li class="next">
-          <a href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//', '/' }}">Older Posts &rarr;</a>
-      </li>
-      {% endif %}
-  </ul>
+  <div class="pager-btn-container">
+    {% if paginator.previous_page %}
+      <a href="{{ paginator.previous_page_path | prepend: site.baseurl | replace: '//' , '/' }}" class="pager-btn-shared" title="Newer posts">&lt;</a>
+    {% endif %}
+    {% if paginator.next_page %}
+      <a href="{{ paginator.next_page_path | prepend: site.baseurl | replace: '//' , '/' }}" class="pager-btn-shared" title="Older posts">&gt;</a>
+    {% endif %}
+  </div>
   {% endif %}
 </div>
