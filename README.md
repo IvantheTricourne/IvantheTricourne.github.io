@@ -8,14 +8,12 @@
 
 Install [Jekyll](https://jekyllrb.com/docs/).
 
-
-## Usage
-
-To install required Ruby gems:
-
+Install the gem deps:
 ```sh
 make install
 ```
+
+## Usage
 
 To serve the site locally:
 
