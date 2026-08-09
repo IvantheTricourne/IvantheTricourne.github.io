@@ -1,5 +1,5 @@
 install:
-	sudo gem install jekyll-sitemap jekyll-feed jekyll-paginate
+	bundle install
 
 serve: install
-	jekyll serve
+	bundle exec jekyll serve
