@@ -46,10 +46,17 @@ on every deploy preview before the Gemfile existed (no Bundler setup to
 resolve against), so don't remove the Gemfile without checking Netlify still
 builds.
 
-Known local-only issue: on macOS 13 (Ventura) and earlier, `jekyll build`
-can fail during SCSS conversion because `sass-embedded`'s native binary
-requires macOS 14+. Not an issue on Netlify's Linux build image or GitHub
-Pages; a local-machine quirk, not a repo bug.
+Known local-only issues on macOS 13 (Ventura) and earlier — not a problem on
+Netlify's Linux build image or GitHub Pages, just this machine's toolchain:
+
+- `jekyll build` can fail during SCSS conversion because newer
+  `sass-embedded` native binaries require macOS 14+. Fixed by pinning
+  `gem "sass-embedded", "1.77.8"` in the `Gemfile` (see the pin's comment).
+- `jekyll serve`/`build` can also crash in `Jekyll::Cleaner` with an
+  `Encoding::UndefinedConversionError` on the accented filenames under
+  `project-arwing/rsrc/` (e.g. `Poké Floats.png`) if the shell locale is
+  `C`/unset. Run with `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` set, e.g.
+  `env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec jekyll serve`.
 
 `scripts/generate_resume_pdf.py` has its own Python deps
 (`scripts/requirements.txt`: pyyaml, jinja2, weasyprint) — separate from the
