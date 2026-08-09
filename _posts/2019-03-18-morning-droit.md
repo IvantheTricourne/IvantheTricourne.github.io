@@ -30,7 +30,7 @@ markdown? Why? Because that's what you're looking at!
 By now you should have figured out this is not your
 [your typical blog post](https://erikanapoletano.com/generic-blog-post/),
 for that you must look
-[elsewhere](https://ivanthetricourne.github.io/we-in-here/).
+[elsewhere]({% post_url 2017-04-12-we-in-here %}).
 No, this is a _teaching_ blog post all about `jekyll`.
 
 (you can also just go to my
