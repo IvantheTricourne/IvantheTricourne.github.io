@@ -85,6 +85,11 @@ exclude:
   - Gemfile.lock
   - LICENSE
   - README.md
+  # Build tooling. Anything not excluded here and not starting with a dot gets
+  # copied into _site verbatim and served — `Makefile` was live at
+  # /Makefile until it was added to this list.
+  - Makefile
+  - ci
   # NOTE: CNAME must NOT be excluded — GitHub Pages reads the custom domain
   # from the built output, so excluding it drops ivanthetricourne.io.
 

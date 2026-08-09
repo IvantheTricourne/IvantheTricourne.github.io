@@ -6,7 +6,7 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": [
         "-c",
-        "env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec jekyll serve --port \"$PORT\""
+        "RUBYOPT=-EUTF-8 bundle exec jekyll serve --port \"$PORT\""
       ],
       "port": 4000,
       "autoPort": true

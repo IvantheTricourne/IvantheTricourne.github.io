@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+
+# Replaces the legacy built-in `pages-build-deployment` flow.
+#
+# That flow ignored the Gemfile and built with the github-pages gem's pinned
+# Jekyll 3.10, while local development ran Jekyll 4.4.1 — so local verification
+# and production could disagree, and did. Building here means local, CI and
+# production all resolve the same Gemfile.lock.
+#
+# NOTE: this only takes effect once the repository's Pages source is set to
+# "GitHub Actions" (Settings > Pages > Build and deployment > Source).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy midway; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.6'
+          bundler-cache: true
+
+      # Same command CI and local development run. A build that fails its
+      # checks never reaches the deploy job.
+      - name: Build and check site
+        run: make check
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
