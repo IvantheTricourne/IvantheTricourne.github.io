@@ -3,9 +3,13 @@
   "configurations": [
     {
       "name": "jekyll",
-      "runtimeExecutable": "env",
-      "runtimeArgs": ["LANG=en_US.UTF-8", "LC_ALL=en_US.UTF-8", "bundle", "exec", "jekyll", "serve", "--port", "4000"],
-      "port": 4000
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec jekyll serve --port \"$PORT\""
+      ],
+      "port": 4000,
+      "autoPort": true
     }
   ]
 }
