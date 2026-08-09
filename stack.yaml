@@ -1,0 +1,6 @@
+# Stackage LTS 22.43 ships GHC 9.6.6 and hakyll 4.16.2.2, so the whole
+# dependency set is pinned by this one line. Bump the resolver to upgrade.
+resolver: lts-22.43
+
+packages:
+  - .

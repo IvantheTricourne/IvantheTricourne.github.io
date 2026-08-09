@@ -1,0 +1,76 @@
+name: Build and deploy
+
+# GitHub Pages can build Jekyll on its own but not Hakyll, so the site is
+# built here and published as a Pages artifact. This replaces the
+# `pages-build-deployment` job that used to run automatically, which means
+# the repository's Pages source must be set to "GitHub Actions"
+# (Settings -> Pages -> Build and deployment -> Source).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it half-published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GHC_VERSION: '9.6.6'
+  # Pinned so the generated CSS does not shift under us.
+  SASS_VERSION: '1.98.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          enable-stack: true
+          stack-version: latest
+
+      # The generator shells out to dart-sass to compile css/style.scss.
+      - name: Install dart-sass
+        run: npm install -g sass@${{ env.SASS_VERSION }}
+
+      # Building Hakyll and Pandoc from source takes tens of minutes; this
+      # keeps it to the first run and to dependency bumps.
+      - name: Cache Haskell dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ env.GHC_VERSION }}-${{ hashFiles('stack.yaml', 'ivanthetricourne-io.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-${{ env.GHC_VERSION }}-
+
+      - name: Build the generator
+        run: stack build --system-ghc
+
+      - name: Build the site
+        run: stack exec --system-ghc site -- build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2017-03-06 -0500
 title: Project Lamp Progress
 ---

@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2017-02-20 11:50:00 -0500
 title: First Post (hype)
 ---

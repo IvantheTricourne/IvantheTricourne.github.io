@@ -1,5 +1,12 @@
+# Hakyll
 _site/
-.sass-cache
-.jekyll-cache
+_cache/
+
+# Haskell build trees
+.stack-work/
+dist-newstyle/
+*.hi
+*.o
+
 .DS_Store
 .claude/settings.local.json

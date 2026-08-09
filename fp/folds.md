@@ -1,9 +1,9 @@
 ---
-layout: page
 title: Recursion Principles and Foldables
 permalink: /recursion-foldables/
 ---
 Consider the definition of the simplest foldable data structure: the *Natural Number*!
+
 ```haskell
 data Nat = Zero
          | Add1 Nat
@@ -17,6 +17,7 @@ instance Show Nat where
 A natural number is either `Zero` or the successor of (i.e., 1 value greater than) another natural number. Think *peano numbers*. With this, we have defined a data structure that includes all positive integers and as well as 0.
 
 Let's define some basic functions for Natural Numbers:
+
 ```haskell
 -- add two natural numbers together.
 plus :: Nat -> Nat -> Nat
@@ -45,11 +46,13 @@ Essentially, the job of `foldNat` is to take *any* natural number into the appro
 *In the event that* `n` *is the natural number* `Zero`, `foldNat` *should return* `base`.
 
 Consequently, the second line of `foldNat` is called in the event that the given `n` is **not** `Zero` but is instead the `Add1` of another natural number `n`. Thus, `foldNat` would then recur on the smaller natural number, `n`, resulting in an `a` which is then passed to `recur` that does whatever it is it's meant to do. The real magic that happens is mostly contained within the function `recur` passed to `foldNat` (**hint** **hint**).
+
 ```haskell
 foldNat :: a -> (a -> a) -> Nat -> a
 foldNat base recur Zero     = base
 foldNat base recur (Add1 n) = recur $ foldNat base recur n
 ```
+
 To further understand what exactly `foldNat` is meant to do, I've included some exercises! As an example, I've done the first of these.
 
 For those who want a little bit more, I've also included a bonus question to define factorial (`fact`) in terms of `foldNat`.
@@ -67,6 +70,7 @@ five = Add1 (Add1 (Add1 (Add1 (Add1 Zero))))
 ```
 
 **Exercises**:
+
 ```haskell
 -- 1. Define `plusFold` that behaves like `plus` but uses `foldNat`.
 plusFold :: Nat -> Nat -> Nat

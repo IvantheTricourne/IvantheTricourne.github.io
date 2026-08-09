@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2017-03-19 -500
 title: March (Down-B)
 ---

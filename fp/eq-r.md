@@ -1,5 +1,4 @@
 ---
-layout: page
 title: Equational Reasoning
 permalink: /equational-reasoning/
 ---
@@ -29,19 +28,22 @@ appendRev xs ys = append (rev xs) ys
 As an example, I've included the solution to the first exercise.
 
 1. Calculate `appendRev [] ys` for any list `ys`. Use substitution.
-```haskell
-appendRev [] ys
-== append (rev []) ys       (def of appendRev)
-== append [] ys             (def of rev)
-== ys                       (def of append)
-```
+
+   ```haskell
+   appendRev [] ys
+   == append (rev []) ys       (def of appendRev)
+   == append [] ys             (def of rev)
+   == ys                       (def of append)
+   ```
 
 2. Calculate `appendRev (x:xs) ys` in a similar manner.
 3. Reimplement `appendRev` using (1) and (2).
 4. Reimplement `rev` to use `appendRev` from (3).
 
 To see this in action, open a GHCi repl, then type the following:
+
 ```haskell
 *> :set +s
 ```
+
 Then run `rev` on a large list (e.g. `[1..5000]`). Compare the time it took to complete the computation using the two implementations of `rev`.

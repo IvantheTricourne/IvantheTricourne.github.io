@@ -1,0 +1,29 @@
+<div class="posts">
+$for(posts)$
+  <article class="post">
+
+    <h1><a href="$url$">$title$</a></h1>
+
+    <div class="date">
+      $date$
+    </div>
+    <div class="entry">
+      $excerpt$
+    </div>
+    <div class="read-more-btn-container">
+      <a href="$url$" class="read-more-btn-shared" title="Read more">&lt;&gt;</a>
+    </div>
+  </article>
+$endfor$
+
+$if(has-pager)$
+  <div class="pager-btn-container">
+$if(has-newer)$
+    <a href="$newer-page-url$" class="pager-btn-shared" title="Newer posts">&lt;</a>
+$endif$
+$if(has-older)$
+    <a href="$older-page-url$" class="pager-btn-shared" title="Older posts">&gt;</a>
+$endif$
+  </div>
+$endif$
+</div>

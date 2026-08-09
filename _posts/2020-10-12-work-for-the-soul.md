@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2020-10-12
 title: work that stirs the soul.
 ---
@@ -12,6 +11,7 @@ We're back, and this time it's only been a month since I last posted on here. I'
 #### _growing a community_
 
 <!-- 1. Summarize events with 4Skinz Sundaez -->
+
 One of the big things happening is the continued success of my personal tournament series. My homies and I ran the 4th iteration of [_4Skinz Sundaez_](https://smash.gg/tournament/4skinz-sundaez-4/details), an online bi-weekly _Super Smash Bros. Melee_ (SSBM) tournament series. Unlike previous iterations, this was the first publicly advertised one, which resulted in a handful of new people in attendance.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/videoseries?list=PLBxt9cn2TEEcFQ3rHvMlvM8P57bgCsFlW" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -19,6 +19,7 @@ One of the big things happening is the continued success of my personal tourname
 While there are still a few more minor logistic concerns that need to be ironed out, the tournament ran quite smoothly and (IMO) continues to improve in every iteration. 
 
 Some short term goals related to the series:
+
 * Streamline the tournament process around match streaming (_Slippi spectator pls_)
 * Have 16 attendees in one tourney (before the 10th iteration)
 * Include some sort of big monthly tourney as part of the series
@@ -29,14 +30,16 @@ Moving forward, I also plan on advertising earlier (i.e., probably a day or 2 be
 
 #### _growing yourself_
 
-As I described in my [previous blog post]({{ site.baseurl }}/branching-out), I've started branching out and doing my own stuff even when it comes to programming and my "professional skillset". Doing so has really opened my eyes on how one's day-to-day can define the person you are and the person you're becoming. It's this line of thinking that has allowed me to ask myself: _What do you want to be remembered for?_ _Am I just another cog in someone else's dream?_
+As I described in my [previous blog post](/2020/09/branching-out.html), I've started branching out and doing my own stuff even when it comes to programming and my "professional skillset". Doing so has really opened my eyes on how one's day-to-day can define the person you are and the person you're becoming. It's this line of thinking that has allowed me to ask myself: _What do you want to be remembered for?_ _Am I just another cog in someone else's dream?_
 
 During the first week of October, I took an entire week off of work to give myself a break from work-related things. During this free time, aside from the usual rest and rec., I decided to give myself some time to work on an entirely new set of projects. These projects are more or less related to running tournament streams and improving my Elm skills. One of these projects is an app I've been calling the _Slippi Stats Viewer_. As of right now, it's the most complex project I've ever written in Elm.
 
 <!-- 2. Introduce Slippi Stats -->
+
 ![Slippi Stats GUI](/images/stats.png)
 
 The app is designed to present _post-set_ information in a clean and interesting way, which makes it quite useful when used in tournament streams. As of writing, the app currently has the following key features:
+
 * A standard set of gameplay stats for the set (i.e., _Total Damage_, _APM_)
 * A set count and visual cues for the winner of the set (i.e., the center icon, gold highlight)
 * Individual game stats including a count for the winner's remaining stocks

@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2025-02-22
 title: who are we now?
 ---
