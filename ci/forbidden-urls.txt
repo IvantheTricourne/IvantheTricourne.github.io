@@ -1,0 +1,19 @@
+# URL substrings that must never appear in the generated sitemap.
+#
+# One pattern per line, matched literally. Blank lines and # comments ignored.
+#
+# ci/expected-urls.txt already catches any change to the published URL set.
+# This file is for exclusions that must hold permanently: a pattern here keeps
+# a path from coming back even if someone later drops it from the `exclude:`
+# list in _config.yml, and it says out loud *why* the path is excluded.
+
+# Internal agent instructions. Not a secret — the repo is public — but it has
+# no business being a rendered page on the blog or an indexed URL.
+/AGENTS
+
+# The vendored 2016 Elm 0.16 package cache under Name-Tag-Generator/elm-stuff.
+# Left commented out because it is not excluded yet: today's build still emits
+# one page from it, so enabling this line now would fail CI on arrival. Turn it
+# on in the same change that adds `Name-Tag-Generator/elm-stuff` to `exclude:`
+# in _config.yml (issue #21).
+# elm-stuff

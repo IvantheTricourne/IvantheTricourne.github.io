@@ -1,0 +1,48 @@
+name: CI
+
+# Builds the site and asserts invariants on the output before merge.
+#
+# Until this existed, the only build of the production artifact was the one
+# GitHub Pages ran after merge, so "I built it locally and it looked right" was
+# the entire review process — and local ran a different major version of Jekyll
+# than production did.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.6'
+          bundler-cache: true
+
+      # `make check` builds and then runs ci/check-site.sh — the same single
+      # command to run locally, so CI can't drift from what you can reproduce.
+      - name: Build and check site
+        run: make check
+
+      # Uploaded so the built output can be inspected from the PR without
+      # needing access to the deployed site.
+      - name: Upload built site
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site
+          retention-days: 7
