@@ -1,0 +1,131 @@
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 400;
+  src: url("fonts/spectral-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: italic;
+  font-weight: 400;
+  src: url("fonts/spectral-400italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 600;
+  src: url("fonts/spectral-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spectral";
+  font-style: normal;
+  font-weight: 700;
+  src: url("fonts/spectral-700.woff2") format("woff2");
+}
+
+@page {
+  size: letter;
+  margin: 0.5in 0.65in;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Spectral", Georgia, "Times New Roman", serif;
+  font-size: 10.3pt;
+  line-height: 1.32;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 20pt;
+  letter-spacing: 0.02em;
+}
+
+.header .subtitle {
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.header .site {
+  color: #444;
+  margin-top: 2px;
+}
+
+section {
+  margin-top: 8px;
+}
+
+section > h2 {
+  font-size: 9.7pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 1px;
+  margin: 0 0 4px 0;
+}
+
+.entry {
+  margin-bottom: 5px;
+}
+
+.entry-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.entry-org {
+  font-weight: 700;
+}
+
+.entry-location {
+  font-weight: 700;
+}
+
+.entry-role {
+  font-style: italic;
+}
+
+.entry-dates {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+ul.highlights {
+  margin: 3px 0 0 0;
+  padding-left: 16px;
+}
+
+ul.highlights > li {
+  margin-bottom: 2px;
+}
+
+ul.highlights ul {
+  margin: 2px 0 2px 0;
+  padding-left: 16px;
+  list-style-type: circle;
+}
+
+.additional ul {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.additional li {
+  margin-bottom: 2px;
+}
