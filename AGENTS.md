@@ -5,9 +5,16 @@ Context for working in this repo: Carl's personal blog + portfolio site.
 ## What this is
 
 A Jekyll static site (based on the old "Jekyll Now" template) hosted on GitHub
-Pages at `ivanthetricourne.github.io`, with a custom domain via `CNAME` and a
-mirrored deployment on IPFS (`ivanthetricourne.io`). Deploys automatically via
-the `pages-build-deployment` GitHub Action on push to `main`.
+Pages, served at the custom domain `ivanthetricourne.io` (set by the root
+`CNAME` file), with `ivanthetricourne.github.io` redirecting to it. Deploys
+automatically via the `pages-build-deployment` GitHub Action on push to `main`.
+
+`ivanthetricourne.io` used to be a separate IPFS deployment on Fleek, wired up
+through the Fleek GitHub App rather than any config in this repo. That site was
+lost when Fleek dropped its free tier — its last build was cancelled on
+2025-08-21, after which the domain served bunny.net's "Domain suspended or not
+configured" page until the DNS was repointed at GitHub Pages. There is no
+longer an IPFS mirror; don't reintroduce references to one.
 
 ## Structure
 
