@@ -1,8 +1,8 @@
 # io page
 [![pages-build-deployment](https://github.com/IvantheTricourne/IvantheTricourne.github.io/actions/workflows/pages/pages-build-deployment/badge.svg?branch=main)](https://github.com/IvantheTricourne/IvantheTricourne.github.io/actions/workflows/pages/pages-build-deployment)
 
-* [Github.io site](https://ivanthetricourne.github.io)
-* [IPFS supported site](https://ivanthetricourne.io/)
+* [Site](https://ivanthetricourne.io/) — custom domain, served by GitHub Pages
+* [github.io mirror](https://ivanthetricourne.github.io) — redirects to the custom domain
 
 ## Build
 
