@@ -18,7 +18,12 @@ the `pages-build-deployment` GitHub Action on push to `main`.
 - `about.md`, `projects.md`, `learn.md`, `index.html` — top-level static pages
 - `images/` — post and page images
 - `_config.yml` — Jekyll config (site name/description, nav footer links, gems)
-- `resume.pdf` — resume, committed directly at the repo root
+- `_data/resume.yml` — resume content, source of truth (see Editing content below)
+- `resume.html`, `resume.css`, `fonts/` — live `/resume/` page rendered from
+  `_data/resume.yml`, styled with a self-hosted Spectral webfont
+- `scripts/generate_resume_pdf.py` — renders `_data/resume.yml` to
+  `resume.pdf` via Jinja2 + WeasyPrint, run with `make resume`
+- `resume.pdf` — generated output, committed at the repo root
 
 Several standalone mini projects/demos live in their own top-level
 directories and are linked from the site rather than built through Jekyll:
@@ -29,14 +34,26 @@ the Jekyll site.
 ## Build & run
 
 ```sh
-make install   # installs jekyll-sitemap, jekyll-feed, jekyll-paginate gems
-make serve     # jekyll serve, local preview
+make install   # bundle install
+make serve     # bundle exec jekyll serve, local preview
+make resume    # regenerate resume.pdf from _data/resume.yml
 ```
 
-Note: the local Jekyll/Ruby toolchain has been broken in this environment
-(gem/Ruby version mismatch — `jekyll` gem installed under a different Ruby
-than the active one). Verify `jekyll --version` works before relying on
-`make serve` for local preview; don't assume it's fixed.
+Dependencies are pinned via `Gemfile`/`Gemfile.lock` (locked for both
+`x86_64-darwin` and `x86_64-linux`, the latter for Netlify's build image).
+Netlify's dashboard build command is `bundle exec jekyll build` — it failed
+on every deploy preview before the Gemfile existed (no Bundler setup to
+resolve against), so don't remove the Gemfile without checking Netlify still
+builds.
+
+Known local-only issue: on macOS 13 (Ventura) and earlier, `jekyll build`
+can fail during SCSS conversion because `sass-embedded`'s native binary
+requires macOS 14+. Not an issue on Netlify's Linux build image or GitHub
+Pages; a local-machine quirk, not a repo bug.
+
+`scripts/generate_resume_pdf.py` has its own Python deps
+(`scripts/requirements.txt`: pyyaml, jinja2, weasyprint) — separate from the
+Jekyll/Bundler toolchain.
 
 ## Git workflow
 
@@ -48,7 +65,8 @@ otherwise.
 
 - New posts: add a markdown file to `_posts/` following the existing
   front matter style (see recent posts for the pattern).
-- Resume: content and regeneration tooling for `resume.pdf` may live in
-  `_data/resume.yml` plus a generation script — check for that before
-  assuming it must be hand-edited; if present, prefer editing the data file
-  and regenerating over hand-editing `resume.pdf`.
+- Resume: edit `_data/resume.yml`, then run `make resume` to regenerate
+  `resume.pdf`. Don't hand-edit `resume.pdf` or `resume.html` — the latter
+  is a Jekyll template driven by the same YAML, not standalone content.
+  Draft/unfinished bullets are kept as commented-out YAML under the
+  relevant entry rather than left as placeholder text in `highlights`.

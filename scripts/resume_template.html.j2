@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ r.name }} - Resume</title>
+  <link rel="stylesheet" type="text/css" href="resume.css">
+</head>
+<body>
+  <div class="header">
+    <h1>{{ r.name }}</h1>
+    <div class="subtitle">{{ r.title }}</div>
+    <div class="site">{{ r.site }}</div>
+  </div>
+
+  <section>
+    <h2>Experience</h2>
+    {% for job in r.experience %}
+    <div class="entry">
+      <div class="entry-row">
+        <span class="entry-org">{{ job.company }}</span>
+        <span class="entry-location">{{ job.location }}</span>
+      </div>
+      <div class="entry-row">
+        <span class="entry-role">{{ job.role }}</span>
+        <span class="entry-dates">{{ job.dates }}</span>
+      </div>
+      {% if job.highlights %}
+      <ul class="highlights">
+        {% for h in job.highlights %}
+        <li>{{ h.text }}
+          {% if h.sub %}
+          <ul>
+            {% for s in h.sub %}
+            <li>{{ s }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    {% for ed in r.education %}
+    <div class="entry">
+      <div class="entry-row">
+        <span class="entry-org">{{ ed.school }}</span>
+        <span class="entry-location">{{ ed.location }}</span>
+      </div>
+      <div class="entry-row">
+        <span class="entry-role">{{ ed.program }}</span>
+        <span class="entry-dates">{{ ed.dates }}</span>
+      </div>
+      {% if ed.highlights %}
+      <ul class="highlights">
+        {% for h in ed.highlights %}
+        <li>{{ h.text }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="additional">
+    <h2>Additional Information</h2>
+    <ul>
+      {% for group in r.additional %}
+      <li><strong>{{ group.label }}:</strong> {{ group['items'] | join(", ") }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+</body>
+</html>

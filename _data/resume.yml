@@ -1,0 +1,62 @@
+name: Carl J. Factora
+title: Software Engineer
+site: ivanthetricourne.github.io
+
+experience:
+  - company: Bloomberg L.P.
+    location: New York, NY
+    role: Senior Software Engineer
+    dates: May 2024-Present
+    highlights: []
+    # Draft bullets, not ready yet -- fill in and move into `highlights` above when ready.
+    # - text: Something about contributions to IBOX (might be a proprietary name); largest OCaml codebase, interfaces with external vendor partnership, LexiFi, backbone backend infrastructure for derivatives
+    # - text: Something about contributions to BLT + programming language theory, financial engineering infrastructure, modernization of legacy template creation systems, including AI integration (don't know if I can directly say that BBG is using AI for this; but it's a personal resume and not a published news article? but might still be considered social media)
+    # - text: Something about contributions to OCaml community + course, small community, driven by passionate individuals to support the language use within BBG, I helped bring up the internal OCaml course which was collaborated with other key OCaml community members. Idk if this is really valuable to put on here tbh, aside from possibly creating an angle outside of technical merits which may actually be more valuable in the current landscape of things
+
+  - company: Foamspace Corp
+    location: Brooklyn, NY
+    role: Software Engineer
+    dates: Aug 2019-May 2024
+    highlights:
+      - text: Managed and deployed a full-stack application to oversee a decentralized proof-of-location protocol
+        sub:
+          - Designed an in-house TCP/TLS interface to efficiently manage and communicate with a globally deployed fleet of IoT radio devices (FOAM nodes) used for terrestrial localization
+          - Designed a data pipeline utilizing Haskell's conduit library capable of asynchronously processing large amounts of localization data as part of a decentralized alternative to GPS
+          - Collaborated with consulting teams to design a web app interface in PureScript used by FOAM zone operators for testing and improving localization performance
+      - text: Contributed to open-source Haskell and PureScript libraries leveraged by the blockchain and web3 community
+        sub:
+          - Secured an open source grant for completing a Haskell library enabling the development of blockchain apps interfacing with the Cosmos SDK
+      - text: Assumed a mixed-role encompassing backend, frontend, and dev-ops responsibilities supporting a small engineering team (<4 software engineers) to meet operational needs
+
+  - company: Droit Financial Tech., LLC
+    location: New York, NY
+    role: Software Developer
+    dates: Aug 2017-July 2019
+    highlights:
+      - text: Spearheaded the design and maintenance of a low-latency decision engine API used at some of the world's largest banks for financial regulatory compliance that remains the core of the company's primary product
+      - text: Designed a domain-specific language (DSL) and its associated tooling; improved API request latency by >40%
+
+education:
+  - school: The Recurse Center
+    location: New York, NY
+    program: Hacker School
+    dates: Feb 2017-June 2017
+    highlights:
+      - text: Designed and authored an online, interactive book for functional programming inspired by Eloquent JavaScript
+      - text: Self-taught various topics of interest, focusing on type-driven development and web development
+
+  - school: Indiana University, Bloomington
+    location: Bloomington, IN
+    program: Bachelor's Degree in Computer Science and English Literature
+    dates: 2012-2016
+    highlights:
+      - text: Instructed numerous graduate and undergraduate courses on programming language theory
+      - text: "Contributed to Essentials of Compilation: An Incremental Approach in Racket by Jeremy G. Siek"
+      - text: Conducted research with Daniel P. Friedman on dependent type theory and constructive proofs
+      - text: Associate instructor for Advanced Functional Programming courses following graduation
+
+additional:
+  - label: Programming Languages
+    items: [OCaml, Haskell, PureScript, Clojure, Elm, Racket/Scheme, JavaScript]
+  - label: Technologies
+    items: [Docker, PostgreSQL, Redis, Kubernetes]
