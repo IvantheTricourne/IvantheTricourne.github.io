@@ -27,10 +27,10 @@ longer an IPFS mirror; don't reintroduce references to one.
 - `_config.yml` — Jekyll config (site name/description, nav footer links, gems)
 - `_data/resume.yml` — resume content, source of truth (see Editing content below)
 - `resume.html`, `resume.css`, `fonts/` — live `/resume/` page rendered from
-  `_data/resume.yml`, styled with a self-hosted Spectral webfont
-- `scripts/generate_resume_pdf.py` — renders `_data/resume.yml` to
-  `resume.pdf` via Jinja2 + WeasyPrint, run with `make resume`
-- `resume.pdf` — generated output, committed at the repo root
+  `_data/resume.yml`, styled with a self-hosted Spectral webfont. `resume.css`
+  doubles as the print stylesheet (`@page` sizing, letter margins) so the
+  page's "Download PDF" button (`window.print()`) produces a clean PDF
+  without any separate build step or committed binary.
 
 Several standalone mini projects/demos live in their own top-level
 directories and are linked from the site rather than built through Jekyll:
@@ -43,7 +43,6 @@ the Jekyll site.
 ```sh
 make install   # bundle install
 make serve     # bundle exec jekyll serve, local preview
-make resume    # regenerate resume.pdf from _data/resume.yml
 ```
 
 Dependencies are pinned via `Gemfile`/`Gemfile.lock` (locked for both
@@ -65,10 +64,6 @@ Netlify's Linux build image or GitHub Pages, just this machine's toolchain:
   `C`/unset. Run with `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` set, e.g.
   `env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec jekyll serve`.
 
-`scripts/generate_resume_pdf.py` has its own Python deps
-(`scripts/requirements.txt`: pyyaml, jinja2, weasyprint) — separate from the
-Jekyll/Bundler toolchain.
-
 ## Git workflow
 
 `main` has branch protection requiring PRs — direct pushes are only possible
@@ -79,8 +74,9 @@ otherwise.
 
 - New posts: add a markdown file to `_posts/` following the existing
   front matter style (see recent posts for the pattern).
-- Resume: edit `_data/resume.yml`, then run `make resume` to regenerate
-  `resume.pdf`. Don't hand-edit `resume.pdf` or `resume.html` — the latter
-  is a Jekyll template driven by the same YAML, not standalone content.
-  Draft/unfinished bullets are kept as commented-out YAML under the
-  relevant entry rather than left as placeholder text in `highlights`.
+- Resume: edit `_data/resume.yml` — `/resume/` picks it up automatically.
+  Don't hand-edit `resume.html`, it's a Jekyll template driven by the same
+  YAML, not standalone content. The page's "Download PDF" button uses
+  `window.print()`, so there's no separate PDF build step to run. Draft/
+  unfinished bullets are kept as commented-out YAML under the relevant
+  entry rather than left as placeholder text in `highlights`.

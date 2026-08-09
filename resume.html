@@ -12,6 +12,7 @@ permalink: /resume/
 </head>
 <body>
   {% assign r = site.data.resume %}
+  <button class="no-print download-pdf" onclick="window.print()">Download PDF</button>
   <div class="header">
     <h1>{{ r.name }}</h1>
     <div class="subtitle">{{ r.title }}</div>
