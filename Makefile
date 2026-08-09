@@ -1,8 +1,8 @@
 install:
-	sudo gem install jekyll-sitemap jekyll-feed jekyll-paginate
+	bundle install
 
 serve: install
-	jekyll serve
+	bundle exec jekyll serve
 
 resume:
 	python3 scripts/generate_resume_pdf.py
