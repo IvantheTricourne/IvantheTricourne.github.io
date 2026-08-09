@@ -19,6 +19,15 @@ and publishes it as a Pages artifact. This requires the repo's Pages source
 to be set to **GitHub Actions** (Settings → Pages → Build and deployment →
 Source) rather than "Deploy from a branch".
 
+Netlify still hosts the per-PR deploy previews, but it no longer builds
+anything — compiling Pandoc and Hakyll inside Netlify's build image would
+cost tens of minutes per preview. The `build` job builds once against a warm
+cache and the `preview` job uploads the finished `_site` through the Netlify
+CLI, so Netlify's repo link must stay disconnected. The preview needs two
+repo secrets, `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID`; without them the
+job logs a notice and skips rather than failing, which is also what happens
+for pull requests from forks.
+
 `ivanthetricourne.io` used to be a separate IPFS deployment on Fleek, wired
 up through the Fleek GitHub App rather than any config in this repo. That
 site was lost when Fleek dropped its free tier — its last build was cancelled

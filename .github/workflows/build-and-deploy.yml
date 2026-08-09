@@ -60,7 +60,14 @@ jobs:
       - name: Build the site
         run: stack exec --system-ghc site -- build
 
+      # Plain copy, for the Netlify preview job below.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site
+
       - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
         with:
           path: _site
 
@@ -74,3 +81,63 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Netlify hosts the per-PR preview, but it does not build it: compiling
+  # Pandoc and Hakyll in Netlify's image would take tens of minutes per
+  # preview, so the `build` job above does it once (with a warm cache) and
+  # this job uploads the finished _site.
+  preview:
+    needs: build
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site
+
+      # Fork PRs get no secrets, and the secrets may simply not be set yet;
+      # in either case skip the preview rather than failing the check.
+      - name: Check for Netlify credentials
+        id: creds
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          if [ -n "$NETLIFY_AUTH_TOKEN" ] && [ -n "$NETLIFY_SITE_ID" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::NETLIFY_AUTH_TOKEN/NETLIFY_SITE_ID not available - skipping deploy preview."
+          fi
+
+      - name: Deploy preview to Netlify
+        id: netlify
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          PR: ${{ github.event.number }}
+        run: |
+          # --alias keeps the URL stable across pushes to the same PR.
+          npx --yes netlify-cli@17 deploy \
+            --dir=_site \
+            --alias="pr-${PR}" \
+            --message="PR #${PR} (${GITHUB_SHA:0:7})" \
+            --json > deploy.json
+          echo "url=$(jq -r '.deploy_url' deploy.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the preview URL
+        if: steps.creds.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.number }}
+          URL: ${{ steps.netlify.outputs.url }}
+        run: |
+          # One sticky comment per PR, updated in place, rather than one per push.
+          printf '🔎 **Deploy preview:** %s\n\nBuilt from `%s`.\n' \
+            "$URL" "${GITHUB_SHA:0:7}" > comment.md
+          gh pr comment "$PR" --edit-last --create-if-none --body-file comment.md
