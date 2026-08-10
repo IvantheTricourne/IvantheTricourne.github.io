@@ -140,4 +140,7 @@ jobs:
           # One sticky comment per PR, updated in place, rather than one per push.
           printf '🔎 **Deploy preview:** %s\n\nBuilt from `%s`.\n' \
             "$URL" "${GITHUB_SHA:0:7}" > comment.md
-          gh pr comment "$PR" --edit-last --create-if-none --body-file comment.md
+          # This job never checks out the repo, so gh cannot infer it from a
+          # git remote; pass it explicitly.
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" \
+            --edit-last --create-if-none --body-file comment.md
