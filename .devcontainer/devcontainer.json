@@ -1,4 +1,11 @@
 {
   "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "features": {"ghcr.io/devcontainers/features/ruby:1": {}}
+  "features": {
+    "ghcr.io/devcontainers-extra/features/haskell:2": {
+      "ghcVersion": "9.6.6",
+      "installStack": true,
+      "downgradeGhcToSupportHls": false
+    }
+  },
+  "postCreateCommand": "npm install -g sass@1.98.0"
 }
