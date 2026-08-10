@@ -18,7 +18,9 @@ serve watch: check
 	stack exec site -- watch
 
 # Drop the generated site and Hakyll's cache, then build from scratch.
+# No `check` dependency: cleaning does not need dart-sass.
 clean:
+	stack build
 	stack exec site -- clean
 
 rebuild: check

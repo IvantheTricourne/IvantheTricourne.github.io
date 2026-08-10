@@ -16,11 +16,6 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it half-published.
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 env:
   GHC_VERSION: '9.6.6'
   # Pinned so the generated CSS does not shift under us.
@@ -75,6 +70,13 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Serialize Pages deploys and let a running one finish rather than
+    # cancelling it half-published. Scoped to this job on purpose: as a
+    # workflow-level group it also swept in PR builds, which never deploy,
+    # so a queued PR run could be cancelled by an unrelated one.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
