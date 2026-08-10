@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2020-01-17
 title: weathering with you
 ---

@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2017-02-22 13:04:00 -500
 title: Project Lamp is Living
 ---

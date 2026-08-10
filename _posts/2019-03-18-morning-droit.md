@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2019-03-18 11:50:00
 title: the return.
 ---
@@ -30,7 +29,7 @@ markdown? Why? Because that's what you're looking at!
 By now you should have figured out this is not your
 [your typical blog post](https://erikanapoletano.com/generic-blog-post/),
 for that you must look
-[elsewhere]({% post_url 2017-04-12-we-in-here %}).
+[elsewhere](/2017/04/we-in-here.html).
 No, this is a _teaching_ blog post all about `jekyll`.
 
 (you can also just go to my

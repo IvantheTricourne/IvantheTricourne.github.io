@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<!-- The blog index and /resume/ are generated rather than sourced from a
+     page file, so they are not in the pages loop below. 404 is left out
+     deliberately. -->
+<url>
+<loc>$site-url$/</loc>
+</url>
+<url>
+<loc>$site-url$/resume/</loc>
+</url>
+$for(pages)$
+<url>
+<loc>$site-url$$url$</loc>
+</url>
+$endfor$
+$for(posts)$
+<url>
+<loc>$site-url$$url$</loc>
+<lastmod>$iso-date$</lastmod>
+</url>
+$endfor$
+</urlset>

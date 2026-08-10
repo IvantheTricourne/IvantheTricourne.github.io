@@ -82,3 +82,67 @@ code {
 .highlight .vg { color: #268BD2 } /* Name.Variable.Global */
 .highlight .vi { color: #268BD2 } /* Name.Variable.Instance */
 .highlight .il { color: #2AA198 } /* Literal.Number.Integer.Long */
+//
+// Pandoc/skylighting equivalents
+//
+// Pandoc emits `div.sourceCode > pre.sourceCode > code.sourceCode` with its
+// own token classes, where Rouge emitted `.highlight` with Pygments' short
+// names. These rules give the Pandoc markup the same box and the same
+// Solarized palette as the Rouge rules above, so highlighted code looks
+// unchanged.
+//
+div.sourceCode {
+  background-color: #efefef;
+  padding: 7px 7px 7px 10px;
+  border: 1px solid #ddd;
+  -moz-box-shadow: 3px 3px rgba(0,0,0,0.1);
+  -webkit-box-shadow: 3px 3px rgba(0,0,0,0.1);
+  box-shadow: 3px 3px rgba(0,0,0,0.1);
+  margin: 20px 0 20px 0;
+  overflow: scroll;
+}
+
+// The clickable line anchors Pandoc wraps every line in; they carry no text
+// and should not look like links.
+pre.sourceCode a[href^="#"] {
+  color: inherit;
+  text-decoration: none;
+}
+
+pre.sourceCode {
+  .kw { color: #859900 } /* Keyword */
+  .cf { color: #859900 } /* ControlFlow */
+  .op { color: #859900 } /* Operator */
+  .ot { color: #859900 } /* Other */
+  .im { color: #859900 } /* Import */
+  .pp { color: #859900 } /* Preprocessor */
+
+  .dt { color: #DC322F } /* DataType */
+  .er { color: #DC322F } /* Error */
+  .al { color: #DC322F } /* Alert */
+  .wa { color: #DC322F; font-style: italic } /* Warning */
+
+  .co { color: #586E75; font-style: italic } /* Comment */
+  .cv { color: #586E75; font-style: italic } /* CommentVar */
+  .do { color: #586E75; font-style: italic } /* Documentation */
+  .an { color: #586E75 } /* Annotation */
+  .in { color: #586E75 } /* Information */
+
+  .st { color: #2AA198 } /* String */
+  .ch { color: #2AA198 } /* Char */
+  .vs { color: #2AA198 } /* VerbatimString */
+  .ss { color: #2AA198 } /* SpecialString */
+  .dv { color: #2AA198 } /* DecVal */
+  .bn { color: #2AA198 } /* BaseN */
+  .fl { color: #2AA198 } /* Float */
+
+  .sc { color: #CB4B16 } /* SpecialChar */
+  .cn { color: #CB4B16 } /* Constant */
+
+  .fu { color: #268BD2 } /* Function */
+  .va { color: #268BD2 } /* Variable */
+  .at { color: #268BD2 } /* Attribute */
+
+  .bu { color: #B58900 } /* BuiltIn */
+  .ex { color: #B58900 } /* Extension */
+}

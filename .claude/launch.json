@@ -2,13 +2,13 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "jekyll",
+      "name": "hakyll",
       "runtimeExecutable": "sh",
       "runtimeArgs": [
         "-c",
-        "env LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 bundle exec jekyll serve --port \"$PORT\""
+        "stack build && stack exec site -- watch --port \"$PORT\""
       ],
-      "port": 4000,
+      "port": 8000,
       "autoPort": true
     }
   ]

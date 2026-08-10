@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2024-12-13
 title: four years later?
 ---

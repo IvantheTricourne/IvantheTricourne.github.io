@@ -1,5 +1,4 @@
 ---
-layout: post
 date: 2019-06-17
 title: free wednesdays.
 ---

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>$resume-name$ - Resume</title>
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" type="text/css" href="/resume.css">
+</head>
+<body>
+  <button class="no-print download-pdf" onclick="window.print()">Download PDF</button>
+  <div class="header">
+    <h1>$resume-name$</h1>
+    <div class="subtitle">$resume-title$</div>
+    <div class="site">$resume-site$</div>
+  </div>
+
+  <section>
+    <h2>Experience</h2>
+    $for(experience)$
+    <div class="entry">
+      <div class="entry-row">
+        <span class="entry-org">$company$</span>
+        <span class="entry-location">$location$</span>
+      </div>
+      <div class="entry-row">
+        <span class="entry-role">$role$</span>
+        <span class="entry-dates">$dates$</span>
+      </div>
+      $if(has-highlights)$
+      <ul class="highlights">
+        $for(highlights)$
+        <li>$text$
+          $if(has-sub)$
+          <ul>
+            $for(sub)$
+            <li>$text$</li>
+            $endfor$
+          </ul>
+          $endif$
+        </li>
+        $endfor$
+      </ul>
+      $endif$
+    </div>
+    $endfor$
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    $for(education)$
+    <div class="entry">
+      <div class="entry-row">
+        <span class="entry-org">$school$</span>
+        <span class="entry-location">$location$</span>
+      </div>
+      <div class="entry-row">
+        <span class="entry-role">$program$</span>
+        <span class="entry-dates">$dates$</span>
+      </div>
+      $if(has-highlights)$
+      <ul class="highlights">
+        $for(highlights)$
+        <li>$text$</li>
+        $endfor$
+      </ul>
+      $endif$
+    </div>
+    $endfor$
+  </section>
+
+  <section class="additional">
+    <h2>Additional Information</h2>
+    <ul>
+      $for(additional)$
+      <li><strong>$label$:</strong> $items$</li>
+      $endfor$
+    </ul>
+  </section>
+</body>
+</html>
