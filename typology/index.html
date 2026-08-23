@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>typology harness — phase 1</title>
+<link rel="stylesheet" href="./harness.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>typology harness</h1>
+    <p class="sub">
+      Phase 1: provider-agnostic LLM plumbing. One <code>classify()</code>
+      contract, two backends — a model running in this browser, or a hosted
+      model on a key you supply. No quiz content lives here yet.
+    </p>
+  </header>
+
+  <section>
+    <h2>1 · This browser</h2>
+    <div id="capability" class="panel">checking…</div>
+  </section>
+
+  <section>
+    <h2>2 · Backend</h2>
+    <div class="panel">
+      <div class="row">
+        <label><input type="radio" name="backend" value="local" checked> In-browser (WebLLM)</label>
+        <label><input type="radio" name="backend" value="hosted"> Hosted (your key)</label>
+      </div>
+
+      <div id="local-opts" class="opts">
+        <label>Model <select id="model"></select></label>
+        <p class="note" id="size-note"></p>
+      </div>
+
+      <div id="hosted-opts" class="opts" hidden>
+        <label>Provider <select id="provider"></select></label>
+        <label>API key <input type="password" id="key" placeholder="pasted here, stored in this browser only" autocomplete="off"></label>
+        <p class="note" id="key-note"></p>
+      </div>
+
+      <div class="row">
+        <button id="load" type="button">Load backend</button>
+        <button id="cancel-load" type="button" hidden>Cancel</button>
+      </div>
+      <div id="progress" class="panel sub-panel" hidden>
+        <div class="bar"><div id="bar-fill"></div></div>
+        <p class="note" id="progress-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Item</h2>
+    <div class="panel">
+      <p class="note">
+        Any forced choice between named poles. Editable so Phase 2 can throw
+        deliberately awkward inputs at it.
+      </p>
+      <textarea id="item" rows="10" spellcheck="false"></textarea>
+      <label>Their answer
+        <textarea id="answer" rows="3" spellcheck="false"
+          placeholder="Try a hedged one — &quot;it depends on the friend&quot;"></textarea>
+      </label>
+      <div class="row">
+        <button id="run" type="button" disabled>Classify</button>
+        <button id="cancel-run" type="button" hidden>Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Output</h2>
+    <div class="panel">
+      <h3>Stream</h3>
+      <pre id="stream" class="stream">—</pre>
+      <h3>Parsed</h3>
+      <div id="result">—</div>
+    </div>
+  </section>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
