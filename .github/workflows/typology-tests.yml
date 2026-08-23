@@ -1,0 +1,29 @@
+# The repo's first workflow. Scoped to typology/ on purpose — the Jekyll site
+# itself is built and deployed by pages-build-deployment, which this does not
+# touch.
+#
+# No install step: the harness has zero npm dependencies, so this is checkout,
+# node, run.
+name: typology tests
+
+on:
+  pull_request:
+    paths:
+      - 'typology/**'
+      - '.github/workflows/typology-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'typology/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run harness tests
+        working-directory: typology
+        run: node --test test/*.test.mjs
