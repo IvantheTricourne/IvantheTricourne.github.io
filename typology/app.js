@@ -26,11 +26,16 @@ const DEMO_ITEM = {
 let backend = null;
 let loadAbort = null;
 let runAbort = null;
+/** Storage estimate, kept so the model picker can check a model actually fits. */
+let storage = null;
+/** Set once the user has knowingly accepted a download larger than free space. */
+let storageOverridden = false;
 
 /* ---------- capability ---------- */
 
 async function renderCapability() {
-  const [gpu, storage] = await Promise.all([detectWebGpu(), estimateStorage()]);
+  const [gpu, estimate] = await Promise.all([detectWebGpu(), estimateStorage()]);
+  storage = estimate;
   const caution = downloadCaution();
   const bits = [];
 
@@ -43,6 +48,7 @@ async function renderCapability() {
   if (caution.slowNetwork) bits.push(`<span class="warn">Connection reports as slow</span>`);
 
   $("capability").innerHTML = bits.map((b) => `<div>${b}</div>`).join("");
+  syncSizeNote();
 
   if (!gpu.supported) {
     // The degradation path: local is not merely discouraged, it is unavailable,
@@ -89,13 +95,34 @@ function syncLoadButton() {
     : "Load model";
 }
 
+/**
+ * Weights land in the Cache API, which is origin-scoped and evictable — not
+ * localStorage, which caps out around 5 MB and could never hold a model.
+ *
+ * The quota is the part worth checking: a browser can report far less free
+ * space than the model needs, and without this the download simply dies
+ * partway through with nothing useful to show for it.
+ */
+function storageVerdict(model) {
+  if (!storage) return { known: false, fits: true };
+  return { known: true, fits: storage.freeMB >= model.megabytes, freeMB: storage.freeMB };
+}
+
 function syncSizeNote() {
   const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
   if (!model) return;
   const caution = downloadCaution();
   const warn = caution.smallScreen || caution.slowNetwork || caution.saveData;
-  $("size-note").innerHTML = `One-time ${model.megabytes.toLocaleString()} MB download from HuggingFace's CDN, then cached in this browser. Nothing is sent to this site.`
-    + (warn ? ` <span class="warn">On this connection or screen you may not want to.</span>` : "");
+  const verdict = storageVerdict(model);
+
+  let note = `One-time ${model.megabytes.toLocaleString()} MB download from HuggingFace's CDN, then cached in this browser (Cache API, not localStorage). Nothing is sent to this site.`;
+  if (verdict.known && !verdict.fits) {
+    note += ` <span class="bad">Only ~${verdict.freeMB.toLocaleString()} MB free — this will not fit.</span>`;
+  } else if (warn) {
+    note += ` <span class="warn">On this connection or screen you may not want to.</span>`;
+  }
+  note += ` <span class="note">The browser may evict it later; it is a cache, not permanent storage.</span>`;
+  $("size-note").innerHTML = note;
 }
 
 async function renderProviders() {
@@ -135,6 +162,26 @@ async function loadBackend() {
   setError("—", "note");
 
   const kind = document.querySelector('input[name="backend"]:checked').value;
+
+  if (kind === "local") {
+    const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
+    const verdict = storageVerdict(model);
+    if (verdict.known && !verdict.fits && !storageOverridden) {
+      // Estimates can be conservative, so this warns rather than forbids —
+      // but it will not let the download start on an unread first click.
+      storageOverridden = true;
+      $("progress-text").innerHTML =
+        `<span class="bad">~${verdict.freeMB.toLocaleString()} MB free, ${model.megabytes.toLocaleString()} MB needed.</span>`
+        + ` <span class="note">Pick a smaller model, or press again to try anyway.</span>`;
+      $("load").disabled = false;
+      $("cancel-load").hidden = true;
+      loadAbort = null;
+      return;
+    }
+    // Without this a multi-gigabyte cache is a prime eviction candidate.
+    try { await navigator.storage?.persist?.(); } catch { /* not offered here */ }
+  }
+
   try {
     backend = kind === "local"
       ? await createBackend("local", { modelId: $("model").value })
@@ -227,7 +274,7 @@ $("key").addEventListener("change", () => {
   // key, on their machine, and it is never transmitted to this origin.
   try { localStorage.setItem(KEY_STORAGE, $("key").value.trim()); } catch { /* private mode */ }
 });
-$("model").addEventListener("change", () => { syncSizeNote(); syncLoadButton(); teardown(); });
+$("model").addEventListener("change", () => { storageOverridden = false; syncSizeNote(); syncLoadButton(); teardown(); });
 document.querySelectorAll('input[name="backend"]').forEach((el) =>
   el.addEventListener("change", syncBackendChoice));
 $("load").addEventListener("click", loadBackend);
