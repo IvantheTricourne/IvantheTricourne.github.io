@@ -85,6 +85,11 @@ exclude:
   - Gemfile.lock
   - LICENSE
   - README.md
+  # Test scaffolding for typology/ — Node-only, no reason to deploy it.
+  # typology/index.html and llm/ are NOT excluded; they are the app.
+  - typology/test
+  - typology/package.json
+  - typology/README.md
   # NOTE: CNAME must NOT be excluded — GitHub Pages reads the custom domain
   # from the built output, so excluding it drops ivanthetricourne.io.
 
