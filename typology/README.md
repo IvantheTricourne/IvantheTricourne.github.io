@@ -225,27 +225,90 @@ written from data, not recollection.
   origins, Phase 5 is not a feature, it is a proxy, and the constraints forbid
   one.
 
+## Phase 3: the quiz
+
+`quiz.html` runs twelve forced-choice items through `classify()` and scores the
+result deterministically. Engineer framing only.
+
+**It is not a validated instrument, and cannot be.** The items and their
+weights were written together by one person, so tuning them to produce any
+chosen answer would be trivial and would demonstrate nothing about accuracy.
+The only claim being made is mechanical: the pipeline completes, every axis
+resolves, the tritype takes one type per centre, and nothing deadlocks. That is
+also all #26 asked for.
+
+### The split that matters
+
+The model's only job is mapping a free-text answer onto one of an item's named
+poles. Weights, stack derivation and tritype are pure arithmetic in
+`llm/scoring.js` and never touch the model. Phase 2 established that small
+models are reliable at *constrained classification* and established nothing
+about anything else, so nothing else is asked of them.
+
+### MBTI from the stack, not from four tallies
+
+Tallying E/I, N/S, T/F, J/P independently is the usual shortcut and it is wrong
+in a way that matters: it can emit letter combinations whose implied function
+stack is incoherent, and it discards the stack, which is the more interesting
+object. `functionStack()` instead picks a dominant, constrains the auxiliary to
+oppose it on **both** kind and attitude, and derives the rest. An incoherent
+stack becomes unrepresentable, and Beebe's eight positions fall out for free.
+
+J/P is the tell. It reports the attitude of whichever of the top two functions
+faces outward — which is why INTJ leads with an *introverted* perceiving
+function and still ends in J. All sixteen types are asserted in
+`test/scoring.test.mjs`, derived from their top two functions alone.
+
+### The gate
+
+One item carries `gate: { scale, marginBelow }` and is asked only while that
+scale's top two scores are within `marginBelow` of each other. It is Phase 4's
+adaptive mechanic in its smallest honest form. `margin()` returns 0 for an
+empty table on purpose: an empty table is maximally unresolved, and returning
+Infinity there would gate away the very item meant to break the tie.
+
+### The answer fence
+
+Phase 2 measured two of three models obeying an instruction embedded in a
+visitor's answer. Constrained decoding does not help — it stops an *invented*
+pole and does nothing about an injection naming a real one.
+
+`userPrompt()` now fences the answer between `<<<ANSWER` and `ANSWER>>>` and
+tells the model the fenced region is data. `normalizeAnswer()` strips those
+markers out of the answer itself, without which the fence is decorative: an
+answer containing the closing marker walks straight out of the quoted region.
+
+Whether this actually helps is **unmeasured**. `injection-fence-escape` was
+added to the bench for exactly that, and the adversarial category is no longer
+comparable to the Phase 2 numbers, since both the prompt and the case list
+changed. The other three categories are unaffected.
+
 ## Running it
 
 ```sh
-npm test                          # 45 tests, no GPU or API key needed
-npx http-server . -p 8123 -s      # harness at /, measurement suite at /bench.html
+npm test                          # 78 tests, no GPU or API key needed
+npm run sizes                     # re-read model download sizes from HuggingFace
+npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at /quiz.html
 ```
 
 ## Layout
 
 ```
-llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN
+llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the answer fence
 llm/json.js        text -> classification recovery (pure; where the logic lives)
+llm/scoring.js     function stack -> MBTI, and Enneagram core/wing/tritype (pure)
+llm/items.js       the twelve-item bank, weights, and the gating rule (pure)
 llm/bench.js       the measurement set and its scoring rules (pure)
 llm/cache.js       what is on disk, and how to delete it
 llm/capability.js  WebGPU / storage / connection detection
 llm/local.js       WebLLM backend      llm/worker.js  engine host (off main thread)
 llm/hosted.js      Gemini + Groq       llm/models.js  local model catalogue
 llm/index.js       lazy backend factory
+scripts/sizes.mjs  re-read real download sizes (dev only, not deployed)
 
 index.html app.js         the harness
 bench.html bench-app.js   the measurement runner
+quiz.html  quiz-app.js    the twelve-item quiz
 ```
 
 ## Known unknowns
