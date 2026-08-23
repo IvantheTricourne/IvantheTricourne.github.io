@@ -40,11 +40,27 @@ const shadowOf = (f) => `${LETTER(f)}${FLIP[ATTITUDE(f)]}`;
  * reproducible rather than dependent on object key iteration.
  */
 function argmax(scores, candidates) {
-  let best = null;
-  for (const f of candidates) {
-    if (best === null || (scores[f] ?? 0) > (scores[best] ?? 0)) best = f;
+  return contest(scores, candidates).winner;
+}
+
+/**
+ * Who won, and who it was actually a contest against.
+ *
+ * A first real run made this necessary. Twelve items produced `Ne 4, Ti 4` and
+ * an Enneagram three-way tie at 2 — so the reported type turned on declaration
+ * order, not on any answer. Ti winning that tie would have printed INTP rather
+ * than ENTP from identical input. The tie-break has to stay deterministic, but
+ * a result that hides how contested it was is overstating itself.
+ */
+export function contest(scores, candidates) {
+  let winner = null;
+  let top = -Infinity;
+  for (const c of candidates) {
+    const v = scores[c] ?? 0;
+    if (v > top) { top = v; winner = c; }
   }
-  return best;
+  const tied = candidates.filter((c) => (scores[c] ?? 0) === top);
+  return { winner, top, tied, contested: tied.length > 1 };
 }
 
 /**
@@ -66,7 +82,15 @@ export function functionStack(scores) {
   const inferior = counterpart(dominant);
   const ego = [dominant, auxiliary, tertiary, inferior];
 
-  return { ego, shadow: ego.map(shadowOf), dominant, auxiliary, tertiary, inferior };
+  // Only the two scored positions can be contested; tertiary and inferior are
+  // derived, so they inherit whatever the top two settled.
+  const ties = {};
+  const domContest = contest(scores, FUNCTIONS);
+  if (domContest.contested) ties.dominant = domContest.tied;
+  const auxContest = contest(scores, auxCandidates);
+  if (auxContest.contested) ties.auxiliary = auxContest.tied;
+
+  return { ego, shadow: ego.map(shadowOf), dominant, auxiliary, tertiary, inferior, ties };
 }
 
 /**
@@ -110,13 +134,7 @@ export function wingsOf(type) {
   return [prev, next];
 }
 
-function topType(scores, candidates) {
-  let best = null;
-  for (const t of candidates) {
-    if (best === null || (scores[t] ?? 0) > (scores[best] ?? 0)) best = t;
-  }
-  return best;
-}
+const topType = (scores, candidates) => contest(scores, candidates).winner;
 
 /**
  * @param {Record<number, number>} scores per-type totals
@@ -139,7 +157,16 @@ export function enneagramFrom(scores) {
     (a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a - b,
   );
 
-  return { core, wing, label: `${core}w${wing}`, tritype, byCenter };
+  const ties = {};
+  const coreContest = contest(scores, ALL_TYPES);
+  if (coreContest.contested) ties.core = coreContest.tied;
+  if ((scores[next] ?? 0) === (scores[prev] ?? 0)) ties.wing = [prev, next];
+  for (const [center, types] of Object.entries(CENTERS)) {
+    const c = contest(scores, types);
+    if (c.contested) (ties.centers ??= {})[center] = c.tied;
+  }
+
+  return { core, wing, label: `${core}w${wing}`, tritype, byCenter, ties };
 }
 
 /* ---------- assembly ---------- */
@@ -153,14 +180,23 @@ export function enneagramFrom(scores) {
  */
 export function scoreAll({ functions = {}, enneagram = {}, answered = 0, abstained = 0 }) {
   const stack = functionStack(functions);
+  const enn = enneagramFrom(enneagram);
   return {
     mbti: {
       type: mbtiFromStack(stack),
       stack: stack.ego,
       shadow: stack.shadow,
+      ties: stack.ties,
       scores: functions,
     },
-    enneagram: { ...enneagramFrom(enneagram), scores: enneagram },
-    evidence: { answered, abstained, items: answered + abstained },
+    enneagram: { ...enn, scores: enneagram },
+    evidence: {
+      answered, abstained, items: answered + abstained,
+      // Surfaced next to the counts because it is the same kind of fact: how
+      // much of this result the answers actually determined. A first real run
+      // returned ENTP off a Ne/Ti tie — Ti winning it would have printed INTP
+      // from identical answers.
+      contested: Object.keys(stack.ties).length > 0 || Object.keys(enn.ties).length > 0,
+    },
   };
 }

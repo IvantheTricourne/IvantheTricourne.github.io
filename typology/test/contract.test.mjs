@@ -50,12 +50,22 @@ test("the control prompt keeps the instruction that caused the defect", () => {
   assert.equal(p.includes(ABSTAIN), false);
 });
 
+test("the confidence guidance pushes in both directions", () => {
+  // It only ever pushed down: hedged -> lower, non-answer -> below 0.2. With
+  // no upward anchor a real quiz run returned 0.2 for an answer that repeated
+  // the pole's own label, and the rationale claimed it was hedged. Three
+  // downward instructions and none upward is a bias, not calibration.
+  const p = systemPrompt();
+  assert.ok(/confidence above\s+0\.8/i.test(p), "needs a floor-raising instruction");
+  assert.ok(/lower the confidence/i.test(p), "and still lowers it when hedged");
+});
+
 test("the abstain prompt keeps the confidence floor as a fallback", () => {
   // Llama 3.2 1B ignores the abstain option entirely but does honour a numeric
   // floor. Dropping the floor as "redundant" moved it from 0.2 to 0.5 on the
   // same fabricated answer — strictly worse. Both instructions, not either.
   const p = systemPrompt();
   assert.ok(p.includes(`"${ABSTAIN}"`));
-  assert.ok(/set confidence below 0\.2/i.test(p));
+  assert.ok(/below 0\.2/i.test(p));
   assert.equal(/pick the closest pole/i.test(p), false);
 });

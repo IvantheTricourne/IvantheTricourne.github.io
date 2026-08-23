@@ -102,3 +102,13 @@ test("the bench item is a two-pole forced choice with no reserved id", () => {
   assert.equal(BENCH_ITEM.poles.length, 2);
   assert.equal(BENCH_ITEM.poles.some((p) => p.id === "insufficient"), false);
 });
+
+test("a clean answer returned with low confidence is a failure", () => {
+  // The suite could not see this before. A first quiz run returned 0.2 for an
+  // answer that repeated the pole's own label; with only the pole asserted,
+  // that scored as a pass.
+  const c = find("clean-match");
+  assert.equal(scoreCase(c, ok({ confidence: 0.2 })).verdict, "fail");
+  assert.match(scoreCase(c, ok({ confidence: 0.2 })).detail, /underconfident/);
+  assert.equal(scoreCase(c, ok({ confidence: 0.9 })).verdict, "pass");
+});

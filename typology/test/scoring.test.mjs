@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  FUNCTIONS, functionStack, mbtiFromStack, enneagramFrom, wingsOf, CENTERS, scoreAll,
+  FUNCTIONS, functionStack, mbtiFromStack, enneagramFrom, wingsOf, CENTERS, scoreAll, contest,
 } from "../llm/scoring.js";
 
 /** The sixteen canonical ego stacks. The derivation must reproduce all of them. */
@@ -122,5 +122,55 @@ test("scoreAll reports how thin the evidence is", () => {
   assert.equal(r.enneagram.core, 5);
   // Carried deliberately: with a dozen items the evidence is always thin, and
   // a number says so more honestly than a caveat nobody reads.
-  assert.deepEqual(r.evidence, { answered: 9, abstained: 3, items: 12 });
+  assert.equal(r.evidence.answered, 9);
+  assert.equal(r.evidence.abstained, 3);
+  assert.equal(r.evidence.items, 12);
+  // And contested, correctly: a single Enneagram score leaves both wings and
+  // two of the three centres on zero, so those are decided by nothing at all.
+  assert.equal(r.evidence.contested, true);
+  assert.deepEqual(r.enneagram.ties.wing, [4, 6]);
+  assert.deepEqual(Object.keys(r.enneagram.ties.centers).sort(), ["gut", "heart"]);
+});
+
+/* ---------- ties (found by the first real quiz run) ---------- */
+
+test("a contested dominant is reported, not hidden", () => {
+  // The run that prompted this: Ne 4 / Ti 4 printed ENTP, and Ti winning the
+  // same tie prints INTP from identical answers. Deterministic is fine; silent
+  // is not, because the result reads as though the answers decided it.
+  const r = scoreAll({
+    functions: { Ne: 4, Ti: 4, Se: 3, Fi: 3, Ni: 2, Te: 1, Si: 1 },
+    enneagram: {}, answered: 8, abstained: 0,
+  });
+  assert.equal(r.mbti.type, "ENTP");
+  assert.deepEqual(r.mbti.ties.dominant, ["Ne", "Ti"]);
+  assert.equal(r.evidence.contested, true);
+});
+
+test("an uncontested result says so", () => {
+  const r = scoreAll({
+    functions: { Ni: 9, Te: 7, Fi: 3, Se: 2, Ne: 1, Ti: 1, Fe: 1, Si: 1 },
+    enneagram: { 5: 9, 4: 5, 1: 3, 2: 1, 8: 1 }, answered: 12, abstained: 0,
+  });
+  assert.equal(r.mbti.type, "INTJ");
+  assert.deepEqual(r.mbti.ties, {});
+  assert.deepEqual(r.enneagram.ties, {});
+  assert.equal(r.evidence.contested, false);
+});
+
+test("enneagram ties are reported per contest, not as one flag", () => {
+  const r = enneagramFrom({ 2: 1, 3: 1, 5: 2, 8: 2, 9: 2 });
+  assert.deepEqual(r.ties.core, [5, 8, 9]);
+  assert.deepEqual(r.ties.centers.gut, [8, 9]);
+  assert.deepEqual(r.ties.centers.heart, [2, 3]);
+  // head is uncontested: 5 outscores 6 and 7.
+  assert.equal(r.ties.centers.head, undefined);
+});
+
+test("a tie among zero-scored candidates still counts as contested", () => {
+  // The worst case for honesty: nothing was answered, so everything ties and
+  // the "result" is pure declaration order.
+  const r = scoreAll({ functions: {}, enneagram: {}, answered: 0, abstained: 12 });
+  assert.equal(r.evidence.contested, true);
+  assert.equal(r.mbti.ties.dominant.length, 8);
 });

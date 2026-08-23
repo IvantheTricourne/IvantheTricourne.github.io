@@ -267,6 +267,39 @@ adaptive mechanic in its smallest honest form. `margin()` returns 0 for an
 empty table on purpose: an empty table is maximally unresolved, and returning
 Infinity there would gate away the very item meant to break the tie.
 
+### Ties decide more than they should
+
+The first real run made this plain. Twelve items produced `Ne 4, Ti 4` and a
+three-way Enneagram tie at 2, so the printed type turned on the order functions
+are declared in: `Ti` winning the same tie prints INTP instead of ENTP from
+identical answers.
+
+Tie-breaking stays deterministic — reproducibility matters more than a coin
+flip — but a result that hides how contested it was overstates itself.
+`scoreAll()` now reports `ties` for every contested position and sets
+`evidence.contested`, and the page points at it. With twelve items this fires
+often, which is the honest signal: the instrument is thin and should say so
+rather than print a confident four-letter answer.
+
+Weighting each answer by the model's confidence would break most of these ties
+using information currently thrown away. That is deliberately **not** done yet:
+confidence was measurably miscalibrated in the same run, and amplifying a
+broken signal is worse than ignoring it.
+
+### Confidence had no upward anchor
+
+The same run returned `0.2` for *"Hold it and see if there's ways to poke holes
+at it"* against a pole labelled **Hold it**, with a rationale claiming the
+answer was hedged. It was verbatim.
+
+The cause was in the prompt: three instructions pushed confidence *down* —
+hedged answers, non-answers, the abstain fallback floor — and none pushed it
+up. The model drifted low and stayed there. There is now an explicit
+"plainly states a preference → above 0.8" anchor.
+
+The bench could not see this, because `clean` cases asserted only the pole. A
+`minConfidence` floor of 0.6 now applies to all four of them.
+
 ### The answer fence
 
 Phase 2 measured two of three models obeying an instruction embedded in a
