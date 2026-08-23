@@ -49,3 +49,13 @@ test("the control prompt keeps the instruction that caused the defect", () => {
   assert.ok(/set confidence below 0\.2/i.test(p));
   assert.equal(p.includes(ABSTAIN), false);
 });
+
+test("the abstain prompt keeps the confidence floor as a fallback", () => {
+  // Llama 3.2 1B ignores the abstain option entirely but does honour a numeric
+  // floor. Dropping the floor as "redundant" moved it from 0.2 to 0.5 on the
+  // same fabricated answer — strictly worse. Both instructions, not either.
+  const p = systemPrompt();
+  assert.ok(p.includes(`"${ABSTAIN}"`));
+  assert.ok(/set confidence below 0\.2/i.test(p));
+  assert.equal(/pick the closest pole/i.test(p), false);
+});

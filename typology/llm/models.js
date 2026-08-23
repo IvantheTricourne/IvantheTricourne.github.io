@@ -40,8 +40,23 @@ export const DEFAULT_LOCAL_MODEL = LOCAL_MODELS[0].id;
  * @param {object} [cached]  the result of cache.js `inspectCachedModel`
  */
 export function sizeOf(model, cached) {
-  if (cached?.measured && cached.megabytes > 0) {
-    return { megabytes: cached.megabytes, source: "measured" };
+  if (cached?.megabytes > 0) {
+    // A floor from real bytes beats a GPU figure that measured 2.08x the disk
+    // it was standing in for. Requiring every shard to carry Content-Length
+    // before trusting any of them threw away the good number and quietly
+    // reported the bad one as "measured" — on the same screen as the floor.
+    return {
+      megabytes: cached.megabytes,
+      source: cached.measured ? "measured" : "floor",
+    };
   }
   return { megabytes: model.vramMB, source: "estimated" };
+}
+
+/** How to write a size without overclaiming what is known about it. */
+export function formatSize(size) {
+  const mb = `${size.megabytes.toLocaleString()} MB`;
+  if (size.source === "measured") return mb;
+  if (size.source === "floor") return `${mb}+`;
+  return `~${mb}`;
 }
