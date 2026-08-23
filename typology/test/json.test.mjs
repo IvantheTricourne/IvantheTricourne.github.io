@@ -57,7 +57,9 @@ test("pole refuses ambiguity rather than guessing", () => {
 test("clean output needs no repairs", () => {
   const r = parse('{"pole":"match","confidence":0.9,"rationale":"defers to the file"}');
   assert.equal(r.ok, true);
-  assert.deepEqual(r.value, { pole: "match", confidence: 0.9, rationale: "defers to the file" });
+  assert.deepEqual(r.value, {
+    pole: "match", abstained: false, confidence: 0.9, rationale: "defers to the file",
+  });
   assert.deepEqual(r.repairs, []);
 });
 
@@ -102,4 +104,52 @@ test("fails cleanly on unusable input", () => {
 test("a hallucinated pole is never silently accepted", () => {
   const r = parse('{"pole":"tabs","confidence":0.99,"rationale":"confident nonsense"}');
   assert.equal(r.ok, false);
+});
+
+/* ---------- abstention (#25) ---------- */
+
+test("the abstain sentinel resolves and is flagged", () => {
+  const r = parse('{"pole":"insufficient","confidence":0.1,"rationale":"no answer given"}');
+  assert.equal(r.ok, true);
+  assert.equal(r.value.pole, "insufficient");
+  assert.equal(r.value.abstained, true);
+  assert.deepEqual(r.repairs, []);
+});
+
+test("a real pole is never flagged as abstained", () => {
+  const r = parse('{"pole":"impose","confidence":0.8,"rationale":"reformats"}');
+  assert.equal(r.value.abstained, false);
+});
+
+test("a refusal in the model's own words maps onto the sentinel", () => {
+  // Safe direction: the worst case turns a malformed response into an
+  // abstention, which cannot manufacture a pole the person never chose.
+  for (const word of ["unknown", "N/A", "cannot determine", "indeterminate"]) {
+    const r = parse(`{"pole":${JSON.stringify(word)},"confidence":0.1,"rationale":"x"}`);
+    assert.equal(r.ok, true, `${word} should resolve`);
+    assert.equal(r.value.abstained, true, `${word} should abstain`);
+    assert.ok(r.repairs.includes("coerced-abstain"));
+  }
+});
+
+test("refusing without an abstain option is recorded as its own outcome", () => {
+  // The Phase 1 contract. Not a parse failure in any interesting sense — the
+  // model understood the task and declined, and the schema had no slot for it.
+  const r = parseClassification(
+    '{"pole":"unknown","confidence":0.1,"rationale":"x"}', item, { abstain: false });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "refused-without-abstain");
+});
+
+test("the sentinel is not accepted when abstention was not offered", () => {
+  const r = parseClassification(
+    '{"pole":"insufficient","confidence":0.1,"rationale":"x"}', item, { abstain: false });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "refused-without-abstain");
+});
+
+test("a hallucinated pole is still unresolvable, not an abstention", () => {
+  const r = parse('{"pole":"negotiate","confidence":0.9,"rationale":"x"}');
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "unresolvable-pole");
 });

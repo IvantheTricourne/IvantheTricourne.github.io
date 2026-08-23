@@ -13,6 +13,35 @@ import { LOCAL_MODELS, DEFAULT_LOCAL_MODEL } from "./models.js";
 
 export { LOCAL_MODELS, DEFAULT_LOCAL_MODEL };
 
+/**
+ * Out of GPU memory, or out of disk?
+ *
+ * Phase 1 collapsed both into "Could not load X", which left a device that
+ * cannot *run* a model indistinguishable from one that cannot *store* it. The
+ * remedies are opposite — pick a smaller model versus free up space — so
+ * reporting them identically sends people to the wrong fix. WebGPU has no
+ * typed OOM error to check, so this matches on the wording the browsers use.
+ */
+const OOM_SIGNS =
+  /out of memory|\boom\b|failed to allocate|exceeds? the .{0,24}limit|device lost|buffer size|insufficient memory|allocation failed/i;
+
+function asLoadError(cause, model) {
+  const message = cause?.message ?? "";
+  if (OOM_SIGNS.test(message)) {
+    return new LlmError(
+      ERR.OUT_OF_MEMORY,
+      `${model.label} needs about ${model.vramMB?.toLocaleString?.() ?? "?"} MB of GPU memory `
+      + `and this device could not spare it. A smaller model will fit; freeing disk will not help.`,
+      { cause },
+    );
+  }
+  return new LlmError(
+    ERR.MODEL_LOAD_FAILED,
+    `Could not load ${model.label}. ${message}`.trim(),
+    { cause },
+  );
+}
+
 export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
   let engine = null;
   let worker = null;
@@ -43,15 +72,11 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
         // A cancelled download surfaces here as a generic failure; distinguish
         // it so the UI does not show an error for something the user asked for.
         if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled during load.", { cause });
-        throw new LlmError(
-          ERR.MODEL_LOAD_FAILED,
-          `Could not load ${model.label}. ${cause.message ?? ""}`.trim(),
-          { cause },
-        );
+        throw asLoadError(cause, model);
       }
     },
 
-    async classify(item, freeText, { onToken, signal } = {}) {
+    async classify(item, freeText, { onToken, signal, abstain = true } = {}) {
       if (!engine) throw new LlmError(ERR.MODEL_LOAD_FAILED, "Backend was not initialised.");
 
       const onAbort = () => engine.interruptGenerate();
@@ -63,13 +88,14 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
         max_tokens: 220,
         response_format: constrained
           // xgrammar constrains decoding to this schema, so an invalid pole is
-          // unrepresentable rather than merely discouraged.
-          ? { type: "json_object", schema: JSON.stringify(schemaFor(item)) }
+          // unrepresentable rather than merely discouraged. With abstention on,
+          // that now includes a representable way to decline.
+          ? { type: "json_object", schema: JSON.stringify(schemaFor(item, { abstain })) }
           // Fallback: plain JSON mode. Valid JSON, arbitrary keys — json.js
           // has to carry it from here.
           : { type: "json_object" },
         messages: [
-          { role: "system", content: systemPrompt() },
+          { role: "system", content: systemPrompt({ abstain }) },
           { role: "user", content: userPrompt(item, freeText) },
         ],
       });
@@ -94,14 +120,16 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
         }
       } catch (cause) {
         if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.", { cause });
-        throw new LlmError(ERR.MODEL_LOAD_FAILED, cause.message ?? "Generation failed.", { cause });
+        // A model can load and still exhaust VRAM once a KV cache is allocated,
+        // so generation needs the same discrimination the load path got.
+        throw asLoadError(cause, model);
       } finally {
         signal?.removeEventListener("abort", onAbort);
       }
 
       if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.");
 
-      const parsed = parseClassification(text, item);
+      const parsed = parseClassification(text, item, { abstain });
       if (!parsed.ok) {
         throw new LlmError(
           ERR.MALFORMED_OUTPUT,

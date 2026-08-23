@@ -1,0 +1,93 @@
+---
+# Front matter only so jekyll-sitemap can be told to skip this page, same as
+# index.html. A dev measurement tool has no business in sitemap.xml (cf. #21).
+sitemap: false
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>typology bench — phase 2</title>
+<link rel="stylesheet" href="./harness.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>typology bench</h1>
+    <p class="sub">
+      The measurement suite for <a href="https://github.com/IvantheTricourne/IvantheTricourne.github.io/issues/25">#25</a>:
+      can a small in-browser model produce structured output worth building on?
+      19 inputs across four categories, scored against stated expectations.
+      <a href="./index.html">&larr; Back to the harness</a>
+    </p>
+  </header>
+
+  <section>
+    <h2>1 · Backend</h2>
+    <div class="panel">
+      <div class="row">
+        <label><input type="radio" name="backend" value="local" checked> In-browser (WebLLM)</label>
+        <label><input type="radio" name="backend" value="hosted"> Hosted (your key)</label>
+      </div>
+      <div id="local-opts" class="opts">
+        <label>Model <select id="model"></select></label>
+      </div>
+      <div id="hosted-opts" class="opts" hidden>
+        <label>Provider <select id="provider"></select></label>
+        <label>API key <input type="password" id="key" placeholder="stored in this browser only" autocomplete="off"></label>
+        <label>Model <input type="text" id="hosted-model" spellcheck="false" autocomplete="off"></label>
+      </div>
+      <p class="note" id="backend-note"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Contract</h2>
+    <div class="panel">
+      <label class="check">
+        <input type="radio" name="arm" value="abstain" checked> Abstention offered
+        <span class="note">The Phase 2 contract: the model may reply <code>insufficient</code>.</span>
+      </label>
+      <label class="check">
+        <input type="radio" name="arm" value="control"> Phase 1 control
+        <span class="note">Forced choice, and a prompt instructing the model to guess the closest pole. This is what shipped.</span>
+      </label>
+      <label class="check">
+        <input type="radio" name="arm" value="both"> Both, back to back
+        <span class="note">The comparison #25 actually needs — same model, same inputs, one contract change between them.</span>
+      </label>
+      <div class="row">
+        <button id="start" type="button">Load model &amp; run</button>
+        <button id="stop" type="button" hidden>Stop</button>
+      </div>
+      <div id="progress" class="panel sub-panel" hidden>
+        <div class="bar"><div id="bar-fill"></div></div>
+        <p class="note" id="progress-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Results</h2>
+    <div class="panel">
+      <div id="summary">Nothing run yet.</div>
+      <div class="bench-scroll"><table class="bench-table" id="rows"></table></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Export</h2>
+    <div class="panel">
+      <p class="note">
+        Raw rows as JSON, for writing the findings from data rather than
+        recollection. Select all and copy.
+      </p>
+      <textarea id="export" rows="6" spellcheck="false" readonly>—</textarea>
+    </div>
+  </section>
+</main>
+<script type="module" src="./bench-app.js"></script>
+</body>
+</html>

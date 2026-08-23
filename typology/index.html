@@ -11,7 +11,7 @@ sitemap: false
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>typology harness — phase 1</title>
+<title>typology harness — phase 2</title>
 <link rel="stylesheet" href="./harness.css">
 </head>
 <body>
@@ -19,9 +19,11 @@ sitemap: false
   <header>
     <h1>typology harness</h1>
     <p class="sub">
-      Phase 1: provider-agnostic LLM plumbing. One <code>classify()</code>
-      contract, two backends — a model running in this browser, or a hosted
-      model on a key you supply. No quiz content lives here yet.
+      Phase 2: measuring whether small in-browser models produce structured
+      output worth building on. One <code>classify()</code> contract, two
+      backends — a model running in this browser, or a hosted model on a key
+      you supply. No quiz content lives here yet.
+      <a href="./bench.html">Run the measurement suite &rarr;</a>
     </p>
   </header>
 
@@ -41,6 +43,7 @@ sitemap: false
       <div id="local-opts" class="opts">
         <label>Model <select id="model"></select></label>
         <p class="note" id="size-note"></p>
+        <div id="cache-panel" class="sub-panel"></div>
       </div>
 
       <div id="hosted-opts" class="opts" hidden>
@@ -68,10 +71,22 @@ sitemap: false
         Any forced choice between named poles. Editable so Phase 2 can throw
         deliberately awkward inputs at it.
       </p>
-      <textarea id="item" rows="10" spellcheck="false"></textarea>
+      <blockquote id="item-prompt" class="item-prompt">—</blockquote>
+      <details>
+        <summary>Item JSON</summary>
+        <textarea id="item" rows="10" spellcheck="false"></textarea>
+      </details>
       <label>Their answer
         <textarea id="answer" rows="3" spellcheck="false"
           placeholder="Try a hedged one — &quot;it depends on the friend&quot;"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="abstain" checked>
+        Let the model decline (<code>insufficient</code>)
+        <span class="note">
+          Off reproduces the Phase 1 contract, which forced a pole even on an
+          empty answer — uncheck to see the difference.
+        </span>
       </label>
       <div class="row">
         <button id="run" type="button" disabled>Classify</button>

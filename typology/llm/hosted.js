@@ -43,14 +43,14 @@ export const PROVIDERS = {
     endpoint: (model, key) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`,
     headers: () => ({ "Content-Type": "application/json" }),
-    body: (item, freeText) => ({
-      systemInstruction: { parts: [{ text: systemPrompt() }] },
+    body: (item, freeText, { abstain }) => ({
+      systemInstruction: { parts: [{ text: systemPrompt({ abstain }) }] },
       contents: [{ role: "user", parts: [{ text: userPrompt(item, freeText) }] }],
       generationConfig: {
         temperature: 0,
         maxOutputTokens: 220,
         responseMimeType: "application/json",
-        responseSchema: toGeminiSchema(schemaFor(item)),
+        responseSchema: toGeminiSchema(schemaFor(item, { abstain })),
       },
     }),
     delta: (chunk) => chunk?.candidates?.[0]?.content?.parts?.[0]?.text ?? "",
@@ -67,14 +67,14 @@ export const PROVIDERS = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
     }),
-    body: (item, freeText, model) => ({
+    body: (item, freeText, { model, abstain }) => ({
       model,
       stream: true,
       temperature: 0,
       max_tokens: 220,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: systemPrompt() },
+        { role: "system", content: systemPrompt({ abstain }) },
         { role: "user", content: userPrompt(item, freeText) },
       ],
     }),
@@ -83,7 +83,7 @@ export const PROVIDERS = {
 };
 
 /** Pure, so the request shape is pinned by tests even without a live call. */
-export function buildRequest(providerId, { item, freeText, model, key }) {
+export function buildRequest(providerId, { item, freeText, model, key, abstain = true }) {
   const provider = PROVIDERS[providerId];
   if (!provider) throw new LlmError(ERR.UNSUPPORTED, `Unknown provider "${providerId}".`);
   const chosen = model || provider.defaultModel;
@@ -92,7 +92,7 @@ export function buildRequest(providerId, { item, freeText, model, key }) {
     init: {
       method: "POST",
       headers: provider.headers(key),
-      body: JSON.stringify(provider.body(item, freeText, chosen)),
+      body: JSON.stringify(provider.body(item, freeText, { model: chosen, abstain })),
     },
   };
 }
@@ -155,12 +155,12 @@ export function createHostedBackend({ provider = "gemini", model = "", getKey } 
       }
     },
 
-    async classify(item, freeText, { onToken, signal } = {}) {
+    async classify(item, freeText, { onToken, signal, abstain = true } = {}) {
       const key = getKey?.();
       if (!key) throw new LlmError(ERR.BAD_KEY, `No API key set. ${spec.keyHint}`);
 
       const { url, init } = buildRequest(provider, {
-        item, freeText, model: model || spec.defaultModel, key,
+        item, freeText, model: model || spec.defaultModel, key, abstain,
       });
 
       let response;
@@ -186,7 +186,7 @@ export function createHostedBackend({ provider = "gemini", model = "", getKey } 
 
       if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.");
 
-      const parsed = parseClassification(text, item);
+      const parsed = parseClassification(text, item, { abstain });
       if (!parsed.ok) {
         throw new LlmError(ERR.MALFORMED_OUTPUT,
           `Model output could not be read (${parsed.reason}).`, { retryable: true });

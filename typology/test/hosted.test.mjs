@@ -22,7 +22,10 @@ test("gemini: key in query, schema stripped of unsupported keywords", () => {
   assert.equal(body.generationConfig.temperature, 0);
   // Gemini's OpenAPI subset rejects additionalProperties.
   assert.equal("additionalProperties" in body.generationConfig.responseSchema, false);
-  assert.deepEqual(body.generationConfig.responseSchema.properties.pole.enum, ["a", "b"]);
+  // The abstain sentinel must survive Gemini's schema narrowing — if it were
+  // stripped, the model would be silently back on the Phase 1 contract.
+  assert.deepEqual(body.generationConfig.responseSchema.properties.pole.enum,
+                   ["a", "b", "insufficient"]);
 });
 
 test("groq: bearer auth, OpenAI-shaped body, JSON mode on", () => {
@@ -57,4 +60,22 @@ test("no key belonging to this site is embedded anywhere", () => {
   const { url, init } = buildRequest("gemini", { ...args, key: "" });
   assert.equal(url.includes("key=&") || url.endsWith("key="), true);
   assert.equal(init.body.includes("SECRET"), false);
+});
+
+test("the control arm reaches the provider schema too", () => {
+  // #25 measures the abstain option against Phase 1's schema on a hosted model
+  // as well as local ones; if the flag stopped at the backend boundary the
+  // hosted control would silently be testing the wrong contract.
+  const { init } = buildRequest("gemini", { ...args, abstain: false });
+  const body = JSON.parse(init.body);
+  assert.deepEqual(body.generationConfig.responseSchema.properties.pole.enum, ["a", "b"]);
+  assert.ok(/pick the closest pole/i.test(body.systemInstruction.parts[0].text));
+});
+
+test("groq carries the abstain sentinel in its prompt", () => {
+  // Groq gets no schema — json_object mode only — so the prompt is the only
+  // place abstention can be offered, which makes it load-bearing there.
+  const { init } = buildRequest("groq", { ...args });
+  const body = JSON.parse(init.body);
+  assert.ok(body.messages[0].content.includes("insufficient"));
 });
