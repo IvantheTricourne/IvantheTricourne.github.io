@@ -4,11 +4,16 @@ import { LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, isReliable } fro
 
 const llama1b = LOCAL_MODELS.find((m) => m.id.includes("Llama-3.2-1B"));
 
-test("the default is a model that fits on the machines we have seen", () => {
-  // Phase 1 defaulted to the 3B, which did not fit the storage quota on the
-  // first machine that ever tried it. A default nobody can load is not one.
-  assert.equal(DEFAULT_LOCAL_MODEL, LOCAL_MODELS[0].id);
-  assert.equal(LOCAL_MODELS[0].downloadMB, Math.min(...LOCAL_MODELS.map((m) => m.downloadMB)));
+test("the default is chosen on measured accuracy, not on size", () => {
+  // Phase 1 defaulted to the 3B, which did not fit the first machine that ever
+  // tried it. The first phase 2 fix over-corrected to the smallest, which the
+  // bench then scored at 27% — it does not classify. Qwen3 1.7B scored 87% at
+  // roughly half the 3B's download, so it is neither the largest nor the
+  // smallest, which is the point: the default tracks results.
+  const chosen = LOCAL_MODELS.find((m) => m.id === DEFAULT_LOCAL_MODEL);
+  assert.ok(chosen, "default must exist in the catalogue");
+  assert.notEqual(chosen.downloadMB, Math.max(...LOCAL_MODELS.map((m) => m.downloadMB)));
+  assert.notEqual(chosen.downloadMB, Math.min(...LOCAL_MODELS.map((m) => m.downloadMB)));
 });
 
 test("every model carries a verified download size, not just a VRAM figure", () => {

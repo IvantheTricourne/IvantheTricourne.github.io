@@ -136,6 +136,20 @@ export function systemPrompt({ abstain = true } = {}) {
   ].join("\n");
 }
 
+/**
+ * Whitespace is not an answer.
+ *
+ * Measured: Qwen3 1.7B correctly declined an empty string and then returned
+ * `match` at 0.95 for "   ". Three spaces read as content. Llama 3.2 1B failed
+ * it too; only the 3B saw through it. That is our defect rather than the
+ * model's, and normalising here fixes every backend at once. The model is
+ * still called, so the measurement stays honest about what it does with an
+ * empty answer.
+ */
+export function normalizeAnswer(freeText) {
+  return typeof freeText === "string" ? freeText.trim() : "";
+}
+
 export function userPrompt(item, freeText) {
   const poles = item.poles
     .map((p) => `  - ${p.id}: ${p.label}${p.hint ? ` (${p.hint})` : ""}`)
@@ -146,6 +160,6 @@ export function userPrompt(item, freeText) {
     "Poles:",
     poles,
     "",
-    `Their answer: ${JSON.stringify(freeText ?? "")}`,
+    `Their answer: ${JSON.stringify(normalizeAnswer(freeText))}`,
   ].join("\n");
 }

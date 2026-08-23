@@ -44,12 +44,26 @@ export const LOCAL_MODELS = [
 ];
 
 /**
- * The smallest model is the wrong default for quality and the right one for a
- * first run. Phase 1 defaulted to the largest, and on the first machine that
- * ever tried it that model did not fit in the browser's storage quota at all —
- * a default nobody can load is not a default.
+ * Qwen3 1.7B, on measured results rather than on size.
+ *
+ * The #25 bench, 19 inputs x 2 contracts x 3 models:
+ *
+ *                  abstain   control    non-answers (abstain)
+ *   Llama 3.2 1B       27%       27%    0/7
+ *   Qwen3 1.7B         87%       53%    6/7
+ *   Llama 3.2 3B       80%       47%    6/7
+ *
+ * Qwen3 is both the most accurate and not the largest — it beats the 3B at
+ * roughly half the download. Llama 3.2 1B is kept as an option but cannot be
+ * the default: at 27% it is not classifying, it is completing a JSON shape.
+ * On `clean-impose` its rationale reads "I reformat it to my settings straight
+ * away" while its pole says `match`, and 16 of its 38 rationales are verbatim
+ * echoes of the input.
+ *
+ * This costs 279 MB over the smallest option. A cheaper download of a model
+ * that does not work is not the cheaper choice.
  */
-export const DEFAULT_LOCAL_MODEL = LOCAL_MODELS[0].id;
+export const DEFAULT_LOCAL_MODEL = "Qwen3-1.7B-q4f16_1-MLC";
 
 /**
  * Best available size for a model, and how much to trust it.

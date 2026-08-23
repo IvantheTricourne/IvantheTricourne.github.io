@@ -16,6 +16,13 @@ import { ABSTAIN } from "./contract.js";
 
 const clamp01 = (n) => Math.min(1, Math.max(0, n));
 
+/**
+ * Rationale length cap. Was 240, which clipped 6 of Qwen3 1.7B's 19 abstain
+ * rationales — it explains a refusal at length, so the cap was truncating the
+ * explanation rather than trimming a runaway. Still inside the token budget.
+ */
+const RATIONALE_MAX = 400;
+
 /** Words models reach for when asked for a number. */
 const WORD_CONFIDENCE = {
   certain: 0.95, definite: 0.95, "very high": 0.9,
@@ -190,8 +197,8 @@ export function parseClassification(rawText, item, { abstain = true } = {}) {
   if (!rationale) {
     rationale = "";
     repairs.push("missing-rationale");
-  } else if (rationale.length > 240) {
-    rationale = `${rationale.slice(0, 237)}...`;
+  } else if (rationale.length > RATIONALE_MAX) {
+    rationale = `${rationale.slice(0, RATIONALE_MAX - 3)}...`;
     repairs.push("truncated-rationale");
   }
 
