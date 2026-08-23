@@ -4,7 +4,7 @@
  */
 import {
   createBackend, listProviders, detectWebGpu, estimateStorage, downloadCaution,
-  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, ERR, isAbort, ABSTAIN,
+  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, isReliable, ERR, isAbort, ABSTAIN,
 } from "./llm/index.js";
 import { inspectAll, deleteModel } from "./llm/cache.js";
 
@@ -183,16 +183,14 @@ function storageVerdict(model) {
     freeMB: storage.freeMB,
     size,
     /**
-     * Whether the shortfall is worth blocking on.
+     * Whether the shortfall is worth blocking a click over.
      *
-     * Measured on real hardware: the VRAM estimate ran 1.26x actual disk for
-     * Llama 3.2 1B and 2.08x for Qwen3 1.7B — so it refused a 979 MB download
-     * against 1,438 MB free, and the model it blocked was never too big. The
-     * ratio is not even constant, so there is no factor to correct by. With a
-     * delete button now one click away, over-blocking costs more than a failed
-     * download does, so an estimate warns and a measurement gates.
+     * True for a real measurement or a verified catalogue size, false for the
+     * VRAM fallback. That fallback once refused a 979 MB download against
+     * 1,438 MB free — the model it blocked was never too big — so it warns
+     * rather than gates now that a delete button is one click away.
      */
-    firm: size.source !== "estimated",
+    firm: isReliable(size),
   };
 }
 
@@ -217,7 +215,7 @@ function syncSizeNote() {
     if (source === "estimated") {
       // Naming the estimate matters: it ran up to 2.08x actual disk on real
       // hardware, so a refusal here may be refusing a download that would fit.
-      note += ` <span class="warn">That is WebLLM's GPU-memory figure, which has measured up to twice the actual disk — treat it as an upper bound.</span>`;
+      note += ` <span class="warn">No verified size for this model — that is WebLLM's GPU-memory figure, which has measured up to twice the actual disk.</span>`;
     }
   }
   if (verdict.known && !verdict.fits) {

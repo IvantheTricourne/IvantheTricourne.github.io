@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize } from "../llm/models.js";
+import { LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, isReliable } from "../llm/models.js";
 
 const llama1b = LOCAL_MODELS.find((m) => m.id.includes("Llama-3.2-1B"));
 
@@ -8,7 +8,21 @@ test("the default is a model that fits on the machines we have seen", () => {
   // Phase 1 defaulted to the 3B, which did not fit the storage quota on the
   // first machine that ever tried it. A default nobody can load is not one.
   assert.equal(DEFAULT_LOCAL_MODEL, LOCAL_MODELS[0].id);
-  assert.equal(LOCAL_MODELS[0].vramMB, Math.min(...LOCAL_MODELS.map((m) => m.vramMB)));
+  assert.equal(LOCAL_MODELS[0].downloadMB, Math.min(...LOCAL_MODELS.map((m) => m.downloadMB)));
+});
+
+test("every model carries a verified download size, not just a VRAM figure", () => {
+  // `npm run sizes` re-reads these from HuggingFace and reports drift.
+  for (const m of LOCAL_MODELS) {
+    assert.ok(m.downloadMB > 0, `${m.label} has no downloadMB`);
+    assert.ok(m.downloadMB < m.vramMB, `${m.label}: VRAM should exceed disk`);
+  }
+});
+
+test("a verified catalogue size gates; the VRAM fallback only warns", () => {
+  assert.equal(isReliable(sizeOf(llama1b, undefined)), true);
+  assert.equal(isReliable({ megabytes: 879, source: "estimated" }), false);
+  assert.equal(isReliable({ megabytes: 695, source: "floor" }), true);
 });
 
 test("a measured floor beats the VRAM estimate", () => {
@@ -23,15 +37,21 @@ test("a measured floor beats the VRAM estimate", () => {
   assert.deepEqual(sizeOf(llama1b, complete), { megabytes: 695, source: "measured" });
 });
 
-test("with nothing on disk it falls back to the estimate, and says so", () => {
-  assert.deepEqual(sizeOf(llama1b, undefined), { megabytes: 879, source: "estimated" });
+test("with nothing on disk it uses the verified download size", () => {
+  assert.deepEqual(sizeOf(llama1b, undefined), { megabytes: 705, source: "catalogue" });
   assert.deepEqual(sizeOf(llama1b, { cached: false, megabytes: 0 }),
-                   { megabytes: 879, source: "estimated" });
+                   { megabytes: 705, source: "catalogue" });
+});
+
+test("a model with no verified size falls back to VRAM, flagged", () => {
+  const unknown = { id: "x", label: "X", vramMB: 4096 };
+  assert.deepEqual(sizeOf(unknown, undefined), { megabytes: 4096, source: "estimated" });
 });
 
 test("formatting never overclaims what is known", () => {
   assert.equal(formatSize({ megabytes: 695, source: "measured" }), "695 MB");
   assert.equal(formatSize({ megabytes: 695, source: "floor" }), "695 MB+");
+  assert.equal(formatSize({ megabytes: 705, source: "catalogue" }), "705 MB");
   assert.equal(formatSize({ megabytes: 879, source: "estimated" }), "~879 MB");
 });
 
