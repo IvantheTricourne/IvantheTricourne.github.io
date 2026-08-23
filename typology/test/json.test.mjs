@@ -88,10 +88,19 @@ test("defaults a missing confidence rather than failing", () => {
 });
 
 test("truncates a runaway rationale", () => {
-  const r = parse(`{"pole":"match","confidence":0.5,"rationale":"${"x".repeat(400)}"}`);
+  const r = parse(`{"pole":"match","confidence":0.5,"rationale":"${"x".repeat(600)}"}`);
   assert.equal(r.ok, true);
-  assert.equal(r.value.rationale.length, 240);
+  assert.equal(r.value.rationale.length, 400);
   assert.ok(r.repairs.includes("truncated-rationale"));
+});
+
+test("a long but legitimate rationale is left intact", () => {
+  // The cap was 240, which clipped 6 of Qwen3 1.7B's 19 abstain rationales.
+  // It explains a refusal at length, so the cap was truncating the reasoning
+  // rather than catching a runaway — the repair tag was firing on normal use.
+  const r = parse(`{"pole":"insufficient","confidence":0.1,"rationale":"${"y".repeat(300)}"}`);
+  assert.equal(r.value.rationale.length, 300);
+  assert.deepEqual(r.repairs, []);
 });
 
 test("fails cleanly on unusable input", () => {

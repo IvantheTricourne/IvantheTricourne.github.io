@@ -27,6 +27,10 @@ header .sub { max-width: 38rem; }
          border-radius: 8px; padding: .9rem 1rem; }
 .sub-panel { margin-top: .75rem; background: transparent; }
 .opts { margin: .75rem 0; display: grid; gap: .5rem; }
+/* [hidden] is only a UA display:none, so any author display rule beats it.
+   Without this the hosted key field stays on screen while local is selected —
+   which it did, from phase 1 through to the first phase 2 smoke test. */
+[hidden] { display: none !important; }
 .row { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin: .5rem 0 0; }
 label { display: block; font-size: .88rem; }
 select, input[type=password], textarea {

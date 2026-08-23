@@ -54,6 +54,15 @@ export function isAbort(err) {
  *
  * A plain word rather than a __sentinel__: it sits in the enum next to real
  * pole ids and small models handle it better when it reads as English.
+ *
+ * Offering it is not sufficient on its own. Llama 3.2 1B, given an empty
+ * answer, an explicit `insufficient` option, and a prompt forbidding inference
+ * from the question, still returned `match` — and reasoned openly from the
+ * question text to get there. The abstain prompt therefore keeps Phase 1's
+ * confidence floor as a fallback: the first draft dropped it as redundant,
+ * which took a model that was honouring the floor at 0.2 and moved it to 0.5
+ * on the same fabrication. A model too weak to decline still needs to be told
+ * to hedge.
  */
 export const ABSTAIN = "insufficient";
 
@@ -123,7 +132,22 @@ export function systemPrompt({ abstain = true } = {}) {
     `with pole "${ABSTAIN}". Do not guess, and do not infer an answer from the`,
     `question itself — the question is not evidence about the person. When they`,
     `have not given you an answer, "${ABSTAIN}" is the correct one.`,
+    `If you pick a pole for such an answer anyway, set confidence below 0.2.`,
   ].join("\n");
+}
+
+/**
+ * Whitespace is not an answer.
+ *
+ * Measured: Qwen3 1.7B correctly declined an empty string and then returned
+ * `match` at 0.95 for "   ". Three spaces read as content. Llama 3.2 1B failed
+ * it too; only the 3B saw through it. That is our defect rather than the
+ * model's, and normalising here fixes every backend at once. The model is
+ * still called, so the measurement stays honest about what it does with an
+ * empty answer.
+ */
+export function normalizeAnswer(freeText) {
+  return typeof freeText === "string" ? freeText.trim() : "";
 }
 
 export function userPrompt(item, freeText) {
@@ -136,6 +160,6 @@ export function userPrompt(item, freeText) {
     "Poles:",
     poles,
     "",
-    `Their answer: ${JSON.stringify(freeText ?? "")}`,
+    `Their answer: ${JSON.stringify(normalizeAnswer(freeText))}`,
   ].join("\n");
 }

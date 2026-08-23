@@ -8,7 +8,7 @@
 import { ERR, LlmError } from "./contract.js";
 
 export { ERR, LlmError, isAbort, ABSTAIN, schemaFor, systemPrompt } from "./contract.js";
-export { LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf } from "./models.js";
+export { LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, isReliable } from "./models.js";
 export { detectWebGpu, estimateStorage, downloadCaution } from "./capability.js";
 export { parseClassification } from "./json.js";
 

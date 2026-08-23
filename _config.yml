@@ -89,7 +89,9 @@ exclude:
   # typology/index.html and llm/ are NOT excluded; they are the app.
   - typology/test
   - typology/package.json
+  - typology/scripts
   - typology/README.md
+  - typology/FINDINGS.md
   # NOTE: CNAME must NOT be excluded — GitHub Pages reads the custom domain
   # from the built output, so excluding it drops ivanthetricourne.io.
 

@@ -4,7 +4,7 @@
  */
 import {
   createBackend, listProviders, detectWebGpu, estimateStorage, downloadCaution,
-  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, ERR, isAbort, ABSTAIN,
+  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, formatSize, isReliable, ERR, isAbort, ABSTAIN,
 } from "./llm/index.js";
 import { inspectAll, deleteModel } from "./llm/cache.js";
 
@@ -95,10 +95,9 @@ function renderModels() {
   const selected = $("model").value || DEFAULT_LOCAL_MODEL;
   $("model").innerHTML = LOCAL_MODELS
     .map((m) => {
-      const { megabytes } = modelSize(m);
       const mark = cacheState[m.id]?.cached ? " · on disk" : "";
       return `<option value="${m.id}"${m.id === selected ? " selected" : ""}>`
-        + `${m.label} — ${megabytes.toLocaleString()} MB${mark}</option>`;
+        + `${m.label} — ${formatSize(modelSize(m))}${mark}</option>`;
     })
     .join("");
   syncSizeNote();
@@ -124,10 +123,7 @@ function syncCachePanel() {
     <p class="note">On disk — ${total.toLocaleString()} MB total. Deleting frees quota immediately.</p>
     <ul class="cache-list">${resident.map((m) => {
       const c = cacheState[m.id];
-      const size = c.measured
-        ? `${c.megabytes.toLocaleString()} MB`
-        : `${c.megabytes.toLocaleString()} MB+`;
-      return `<li><span>${m.label} — ${size} <span class="note">(${c.entries} files)</span></span>`
+      return `<li><span>${m.label} — ${formatSize(sizeOf(m, c))} <span class="note">(${c.entries} files)</span></span>`
         + `<button type="button" class="link" data-delete="${m.id}">Delete</button></li>`;
     }).join("")}</ul>`;
 }
@@ -166,7 +162,7 @@ function syncLoadButton() {
   // overstate the cost of a click that is now nearly free.
   $("load").textContent = cacheState[model.id]?.cached
     ? `Load ${model.label} from disk`
-    : `Download ${modelSize(model).megabytes.toLocaleString()} MB & load`;
+    : `Download ${formatSize(modelSize(model))} & load`;
 }
 
 /**
@@ -180,10 +176,21 @@ function syncLoadButton() {
 function storageVerdict(model) {
   if (!storage || !model) return { known: false, fits: true };
   if (cacheState[model.id]?.cached) return { known: true, fits: true, cached: true };
+  const size = modelSize(model);
   return {
     known: true,
-    fits: storage.freeMB >= modelSize(model).megabytes,
+    fits: storage.freeMB >= size.megabytes,
     freeMB: storage.freeMB,
+    size,
+    /**
+     * Whether the shortfall is worth blocking a click over.
+     *
+     * True for a real measurement or a verified catalogue size, false for the
+     * VRAM fallback. That fallback once refused a 979 MB download against
+     * 1,438 MB free — the model it blocked was never too big — so it warns
+     * rather than gates now that a delete button is one click away.
+     */
+    firm: isReliable(size),
   };
 }
 
@@ -197,14 +204,18 @@ function syncSizeNote() {
 
   let note;
   if (verdict.cached) {
-    note = `Already on disk — ${megabytes.toLocaleString()} MB, measured. Loading is a cache read, not a download.`;
+    const how = source === "measured"
+      ? "measured"
+      : "measured across the shards that report a size, so a floor";
+    note = `Already on disk — ${formatSize({ megabytes, source })}, ${how}.`
+      + ` Loading is a cache read, not a download.`;
   } else {
-    note = `One-time ${megabytes.toLocaleString()} MB download from HuggingFace's CDN, then cached in this browser`
-      + ` (Cache API, not localStorage). Nothing is sent to this site.`;
+    note = `One-time ${formatSize({ megabytes, source })} download from HuggingFace's CDN, then cached in`
+      + ` this browser (Cache API, not localStorage). Nothing is sent to this site.`;
     if (source === "estimated") {
-      // Naming the estimate matters: it runs high, so a refusal here may be
-      // refusing a download that would in fact have fit.
-      note += ` <span class="note">Size is WebLLM's GPU-memory figure, which overstates disk — the real number is measured after the first download.</span>`;
+      // Naming the estimate matters: it ran up to 2.08x actual disk on real
+      // hardware, so a refusal here may be refusing a download that would fit.
+      note += ` <span class="warn">No verified size for this model — that is WebLLM's GPU-memory figure, which has measured up to twice the actual disk.</span>`;
     }
   }
   if (verdict.known && !verdict.fits) {
@@ -267,18 +278,24 @@ async function loadBackend() {
     await refreshStorage();
     const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
     const verdict = storageVerdict(model);
-    if (verdict.known && !verdict.fits && !storageOverridden) {
-      // Estimates can be conservative, so this warns rather than forbids —
-      // but it will not let the download start on an unread first click.
+    if (verdict.known && !verdict.fits && verdict.firm && !storageOverridden) {
+      // Only a real measurement stops a click. See storageVerdict.
       storageOverridden = true;
       renderModels();
       $("progress-text").innerHTML =
-        `<span class="bad">~${verdict.freeMB.toLocaleString()} MB free, ${modelSize(model).megabytes.toLocaleString()} MB needed.</span>`
+        `<span class="bad">~${verdict.freeMB.toLocaleString()} MB free, ${formatSize(verdict.size)} needed.</span>`
         + ` <span class="note">Delete a cached model below, pick a smaller one, or press again to try anyway.</span>`;
       $("load").disabled = false;
       $("cancel-load").hidden = true;
       loadAbort = null;
       return;
+    }
+    if (verdict.known && !verdict.fits) {
+      // Estimated shortfall: say so and start anyway. The number has measured
+      // twice the real size, and a failed download is now one click to clear.
+      $("progress-text").innerHTML =
+        `<span class="warn">~${verdict.freeMB.toLocaleString()} MB free against an estimated ${formatSize(verdict.size)}.</span>`
+        + ` <span class="note">The estimate runs high; starting anyway.</span>`;
     }
     // Without this a multi-gigabyte cache is a prime eviction candidate.
     try { await navigator.storage?.persist?.(); } catch { /* not offered here */ }
