@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   FUNCTIONS, functionStack, mbtiFromStack, enneagramFrom, wingsOf, CENTERS, scoreAll, contest,
+  MAX_ITEM_WEIGHT,
 } from "../llm/scoring.js";
 
 /** The sixteen canonical ego stacks. The derivation must reproduce all of them. */
@@ -173,4 +174,40 @@ test("a tie among zero-scored candidates still counts as contested", () => {
   const r = scoreAll({ functions: {}, enneagram: {}, answered: 0, abstained: 12 });
   assert.equal(r.evidence.contested, true);
   assert.equal(r.mbti.ties.dominant.length, 8);
+});
+
+test("a one-point lead is reported as fragile even with no tie", () => {
+  // Two real runs differing in a single answer printed ENTP then INTP. The
+  // second reported no ties at all — Ti led Ne by exactly 1, and items carry
+  // weights of up to 2, so one different answer flips it. Ties alone missed
+  // this; the margin is the signal that catches it.
+  const r = scoreAll({
+    functions: { Ti: 4, Ne: 3, Fi: 3, Se: 2, Ni: 2, Te: 2, Si: 1, Fe: 1 },
+    enneagram: { 5: 9, 4: 4, 1: 1 }, answered: 12, abstained: 0,
+  });
+  assert.equal(r.mbti.type, "INTP");
+  assert.deepEqual(r.mbti.ties, {}, "genuinely no tie");
+  assert.equal(r.evidence.margins.dominant, 1);
+  assert.equal(r.evidence.fragile, true, "a 1-point lead against weight-2 items");
+});
+
+test("a decisive result is not flagged", () => {
+  const r = scoreAll({
+    functions: { Ni: 12, Te: 9, Fi: 3, Se: 2, Ne: 1, Ti: 1, Fe: 1, Si: 1 },
+    enneagram: { 5: 12, 4: 5, 1: 3, 8: 1, 2: 1 }, answered: 12, abstained: 0,
+  });
+  assert.equal(r.mbti.type, "INTJ");
+  assert.equal(r.evidence.contested, false);
+  assert.equal(r.evidence.fragile, false);
+  assert.ok(r.evidence.margins.dominant > MAX_ITEM_WEIGHT);
+});
+
+test("a tie is the special case of a zero margin", () => {
+  const r = scoreAll({
+    functions: { Ne: 4, Ti: 4, Se: 3, Fi: 3 },
+    enneagram: { 5: 9, 4: 4 }, answered: 12, abstained: 0,
+  });
+  assert.equal(r.evidence.margins.dominant, 0);
+  assert.equal(r.evidence.contested, true);
+  assert.equal(r.evidence.fragile, true);
 });

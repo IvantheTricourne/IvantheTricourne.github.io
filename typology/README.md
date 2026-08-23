@@ -276,10 +276,16 @@ identical answers.
 
 Tie-breaking stays deterministic — reproducibility matters more than a coin
 flip — but a result that hides how contested it was overstates itself.
-`scoreAll()` now reports `ties` for every contested position and sets
-`evidence.contested`, and the page points at it. With twelve items this fires
-often, which is the honest signal: the instrument is thin and should say so
-rather than print a confident four-letter answer.
+
+Reporting ties turned out not to be enough. A third run differing from the
+second in **one answer** printed INTP instead of ENTP and reported *no ties at
+all*: `Ti` led `Ne` by exactly 1, and items carry weights of up to 2. A tie is
+just the special case where that lead is 0.
+
+So `evidence` carries `margins` and a `fragile` flag — true whenever the leader
+is ahead by no more than a single item is worth. With twelve items this fires
+almost always, which is the honest signal: the instrument is thin and should
+say so rather than print a confident four letters.
 
 Weighting each answer by the model's confidence would break most of these ties
 using information currently thrown away. That is deliberately **not** done yet:

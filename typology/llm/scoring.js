@@ -60,7 +60,10 @@ export function contest(scores, candidates) {
     if (v > top) { top = v; winner = c; }
   }
   const tied = candidates.filter((c) => (scores[c] ?? 0) === top);
-  return { winner, top, tied, contested: tied.length > 1 };
+  const runnerUp = candidates
+    .filter((c) => c !== winner)
+    .reduce((best, c) => Math.max(best, scores[c] ?? 0), 0);
+  return { winner, top, tied, contested: tied.length > 1, margin: top - runnerUp };
 }
 
 /**
@@ -90,7 +93,10 @@ export function functionStack(scores) {
   const auxContest = contest(scores, auxCandidates);
   if (auxContest.contested) ties.auxiliary = auxContest.tied;
 
-  return { ego, shadow: ego.map(shadowOf), dominant, auxiliary, tertiary, inferior, ties };
+  return {
+    ego, shadow: ego.map(shadowOf), dominant, auxiliary, tertiary, inferior, ties,
+    margin: domContest.margin,
+  };
 }
 
 /**
@@ -166,10 +172,23 @@ export function enneagramFrom(scores) {
     if (c.contested) (ties.centers ??= {})[center] = c.tied;
   }
 
-  return { core, wing, label: `${core}w${wing}`, tritype, byCenter, ties };
+  return {
+    core, wing, label: `${core}w${wing}`, tritype, byCenter, ties,
+    margin: coreContest.margin,
+  };
 }
 
 /* ---------- assembly ---------- */
+
+/**
+ * The largest weight any single item can contribute.
+ *
+ * A lead smaller than this means one different answer would have changed the
+ * result — which is not the same as a tie, and is the failure mode ties alone
+ * missed. Two real runs differing in one item printed ENTP and then INTP; the
+ * second reported no ties at all, because Ti led Ne by exactly 1.
+ */
+export const MAX_ITEM_WEIGHT = 2;
 
 /**
  * Turn accumulated weights into a result.
@@ -193,10 +212,13 @@ export function scoreAll({ functions = {}, enneagram = {}, answered = 0, abstain
     evidence: {
       answered, abstained, items: answered + abstained,
       // Surfaced next to the counts because it is the same kind of fact: how
-      // much of this result the answers actually determined. A first real run
-      // returned ENTP off a Ne/Ti tie — Ti winning it would have printed INTP
-      // from identical answers.
+      // much of this result the answers actually determined.
       contested: Object.keys(stack.ties).length > 0 || Object.keys(enn.ties).length > 0,
+      margins: { dominant: stack.margin, core: enn.margin },
+      // The stronger signal. A tie is the special case where the margin is 0;
+      // a margin of 1 against item weights of 2 is just as fragile and reports
+      // no tie at all, which is exactly how a one-answer flip slipped through.
+      fragile: stack.margin <= MAX_ITEM_WEIGHT || enn.margin <= MAX_ITEM_WEIGHT,
     },
   };
 }
