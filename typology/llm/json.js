@@ -8,9 +8,11 @@
  * Phase 2 (#25) can measure which ones actually carry the load per model,
  * rather than guessing at where the fragility lives.
  *
- * No imports, no DOM, no network. This is the part of the harness that can be
- * tested without a GPU or an API key, so it is where the logic lives.
+ * One import (the abstain sentinel), no DOM, no network. This is the part of
+ * the harness testable without a GPU or an API key, so the logic lives here.
  */
+
+import { ABSTAIN } from "./contract.js";
 
 const clamp01 = (n) => Math.min(1, Math.max(0, n));
 
@@ -101,12 +103,41 @@ export function coercePole(value, poles = []) {
 }
 
 /**
+ * Words models reach for to refuse when the contract offers them no way to.
+ *
+ * Used in two directions. When abstention is offered, a refusal phrased in the
+ * model's own vocabulary is mapped onto the sentinel — safe, because the worst
+ * case converts a malformed response into an abstention, which is the
+ * conservative direction and cannot manufacture a false pole. When abstention
+ * is *not* offered, the same match is recorded as a distinct failure reason,
+ * so #25 can count how often a model tries to refuse anyway.
+ */
+const REFUSAL_HINTS = [
+  "insufficient", "indeterminate", "undetermined", "unknown", "unclear",
+  "no answer", "not enough", "cannot determine", "can't determine",
+  "none", "n/a", "null", "unanswerable",
+];
+
+function looksLikeRefusal(value) {
+  if (typeof value !== "string") return false;
+  const v = value.trim().toLowerCase();
+  return v ? REFUSAL_HINTS.some((h) => v === h || v.includes(h)) : false;
+}
+
+/**
+ * @param {string} rawText
+ * @param {{poles: {id: string, label?: string}[]}} item
+ * @param {{abstain?: boolean}} [options] `abstain: false` reproduces the
+ *        Phase 1 contract, which is the control arm for #25.
  * @returns {{ok: true, value: object, repairs: string[]}
  *          |{ok: false, reason: string, repairs: string[]}}
  */
-export function parseClassification(rawText, item) {
+export function parseClassification(rawText, item, { abstain = true } = {}) {
   const repairs = [];
   const poles = item?.poles ?? [];
+  // The sentinel resolves through the same path as a real pole, so every
+  // coercion below applies to it too rather than needing a parallel branch.
+  const resolvable = abstain ? [...poles, { id: ABSTAIN, label: ABSTAIN }] : poles;
 
   const slice = extractJsonObject(rawText);
   if (!slice) return { ok: false, reason: "no-json-object", repairs };
@@ -130,9 +161,21 @@ export function parseClassification(rawText, item) {
     return { ok: false, reason: "not-an-object", repairs };
   }
 
-  const pole = coercePole(parsed.pole ?? parsed.choice ?? parsed.answer, poles);
-  if (!pole) return { ok: false, reason: "unresolvable-pole", repairs };
-  if (parsed.pole !== pole) repairs.push("coerced-pole");
+  const rawPole = parsed.pole ?? parsed.choice ?? parsed.answer;
+  let pole = coercePole(rawPole, resolvable);
+  if (!pole) {
+    if (!looksLikeRefusal(rawPole)) {
+      return { ok: false, reason: "unresolvable-pole", repairs };
+    }
+    if (!abstain) {
+      // Not a parse failure in any interesting sense: the model understood the
+      // task and declined, and the Phase 1 contract had no slot for that.
+      return { ok: false, reason: "refused-without-abstain", repairs };
+    }
+    pole = ABSTAIN;
+    repairs.push("coerced-abstain");
+  }
+  if (rawPole !== pole && !repairs.includes("coerced-abstain")) repairs.push("coerced-pole");
   if (parsed.pole === undefined) repairs.push("aliased-pole-key");
 
   let confidence = coerceConfidence(parsed.confidence);
@@ -152,5 +195,9 @@ export function parseClassification(rawText, item) {
     repairs.push("truncated-rationale");
   }
 
-  return { ok: true, value: { pole, confidence, rationale }, repairs };
+  return {
+    ok: true,
+    value: { pole, abstained: pole === ABSTAIN, confidence, rationale },
+    repairs,
+  };
 }

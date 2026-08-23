@@ -4,8 +4,9 @@
  */
 import {
   createBackend, listProviders, detectWebGpu, estimateStorage, downloadCaution,
-  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, ERR, isAbort,
+  LOCAL_MODELS, DEFAULT_LOCAL_MODEL, sizeOf, ERR, isAbort, ABSTAIN,
 } from "./llm/index.js";
+import { inspectAll, deleteModel } from "./llm/cache.js";
 
 const KEY_STORAGE = "typology.hosted.key";
 const $ = (id) => document.getElementById(id);
@@ -26,16 +27,35 @@ const DEMO_ITEM = {
 let backend = null;
 let loadAbort = null;
 let runAbort = null;
-/** Storage estimate, kept so the model picker can check a model actually fits. */
+/** Storage estimate. Refreshed on demand — a stale copy silently misreports. */
 let storage = null;
+/** Per-model Cache API state, keyed by model id. */
+let cacheState = {};
 /** Set once the user has knowingly accepted a download larger than free space. */
 let storageOverridden = false;
+
+/* ---------- storage & cache ---------- */
+
+/**
+ * Phase 1 read the quota once at page load and never again, so clearing a
+ * cached model left the gate insisting on the old figure until a full reload —
+ * with nothing on screen to suggest a reload was needed. Anything that can
+ * change what is on disk calls this.
+ */
+async function refreshStorage() {
+  storage = await estimateStorage();
+  cacheState = await inspectAll(LOCAL_MODELS);
+  return storage;
+}
+
+function modelSize(model) {
+  return sizeOf(model, cacheState[model?.id]);
+}
 
 /* ---------- capability ---------- */
 
 async function renderCapability() {
-  const [gpu, estimate] = await Promise.all([detectWebGpu(), estimateStorage()]);
-  storage = estimate;
+  const [gpu] = await Promise.all([detectWebGpu(), refreshStorage()]);
   const caution = downloadCaution();
   const bits = [];
 
@@ -48,7 +68,7 @@ async function renderCapability() {
   if (caution.slowNetwork) bits.push(`<span class="warn">Connection reports as slow</span>`);
 
   $("capability").innerHTML = bits.map((b) => `<div>${b}</div>`).join("");
-  syncSizeNote();
+  renderModels();
 
   if (!gpu.supported) {
     // The degradation path: local is not merely discouraged, it is unavailable,
@@ -72,10 +92,61 @@ function syncBackendChoice() {
 }
 
 function renderModels() {
+  const selected = $("model").value || DEFAULT_LOCAL_MODEL;
   $("model").innerHTML = LOCAL_MODELS
-    .map((m) => `<option value="${m.id}"${m.id === DEFAULT_LOCAL_MODEL ? " selected" : ""}>${m.label} — ${m.megabytes.toLocaleString()} MB</option>`)
+    .map((m) => {
+      const { megabytes } = modelSize(m);
+      const mark = cacheState[m.id]?.cached ? " · on disk" : "";
+      return `<option value="${m.id}"${m.id === selected ? " selected" : ""}>`
+        + `${m.label} — ${megabytes.toLocaleString()} MB${mark}</option>`;
+    })
     .join("");
   syncSizeNote();
+  syncCachePanel();
+  syncLoadButton();
+}
+
+/**
+ * Cached models get a way out that is not DevTools.
+ *
+ * Phase 1 offered a multi-gigabyte download and no corresponding delete, which
+ * left "pick a smaller model" as advice a visitor could not act on once the
+ * larger one was already resident and occupying the quota.
+ */
+function syncCachePanel() {
+  const resident = LOCAL_MODELS.filter((m) => cacheState[m.id]?.cached);
+  if (!resident.length) {
+    $("cache-panel").innerHTML = `<span class="note">No models on disk yet.</span>`;
+    return;
+  }
+  const total = resident.reduce((sum, m) => sum + (cacheState[m.id].megabytes || 0), 0);
+  $("cache-panel").innerHTML = `
+    <p class="note">On disk — ${total.toLocaleString()} MB total. Deleting frees quota immediately.</p>
+    <ul class="cache-list">${resident.map((m) => {
+      const c = cacheState[m.id];
+      const size = c.measured
+        ? `${c.megabytes.toLocaleString()} MB`
+        : `${c.megabytes.toLocaleString()} MB+`;
+      return `<li><span>${m.label} — ${size} <span class="note">(${c.entries} files)</span></span>`
+        + `<button type="button" class="link" data-delete="${m.id}">Delete</button></li>`;
+    }).join("")}</ul>`;
+}
+
+async function onDelete(modelId) {
+  const model = LOCAL_MODELS.find((m) => m.id === modelId);
+  const button = document.querySelector(`[data-delete="${modelId}"]`);
+  if (button) { button.disabled = true; button.textContent = "deleting…"; }
+  if (backend?.model === modelId) teardown();
+  try {
+    const { freedMB } = await deleteModel(modelId);
+    await refreshStorage();
+    renderModels();
+    $("cache-panel").insertAdjacentHTML("beforeend",
+      `<p class="ok">Freed ~${freedMB.toLocaleString()} MB from ${model?.label ?? modelId}.</p>`);
+  } catch (err) {
+    $("cache-panel").insertAdjacentHTML("beforeend",
+      `<p class="bad">Could not delete: ${err.message}</p>`);
+  }
 }
 
 /**
@@ -90,9 +161,12 @@ function syncLoadButton() {
     return;
   }
   const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
-  $("load").textContent = model
-    ? `Download ${model.megabytes.toLocaleString()} MB & load`
-    : "Load model";
+  if (!model) { $("load").textContent = "Load model"; return; }
+  // Already resident: there is nothing to download and saying otherwise would
+  // overstate the cost of a click that is now nearly free.
+  $("load").textContent = cacheState[model.id]?.cached
+    ? `Load ${model.label} from disk`
+    : `Download ${modelSize(model).megabytes.toLocaleString()} MB & load`;
 }
 
 /**
@@ -104,8 +178,13 @@ function syncLoadButton() {
  * partway through with nothing useful to show for it.
  */
 function storageVerdict(model) {
-  if (!storage) return { known: false, fits: true };
-  return { known: true, fits: storage.freeMB >= model.megabytes, freeMB: storage.freeMB };
+  if (!storage || !model) return { known: false, fits: true };
+  if (cacheState[model.id]?.cached) return { known: true, fits: true, cached: true };
+  return {
+    known: true,
+    fits: storage.freeMB >= modelSize(model).megabytes,
+    freeMB: storage.freeMB,
+  };
 }
 
 function syncSizeNote() {
@@ -114,14 +193,28 @@ function syncSizeNote() {
   const caution = downloadCaution();
   const warn = caution.smallScreen || caution.slowNetwork || caution.saveData;
   const verdict = storageVerdict(model);
+  const { megabytes, source } = modelSize(model);
 
-  let note = `One-time ${model.megabytes.toLocaleString()} MB download from HuggingFace's CDN, then cached in this browser (Cache API, not localStorage). Nothing is sent to this site.`;
+  let note;
+  if (verdict.cached) {
+    note = `Already on disk — ${megabytes.toLocaleString()} MB, measured. Loading is a cache read, not a download.`;
+  } else {
+    note = `One-time ${megabytes.toLocaleString()} MB download from HuggingFace's CDN, then cached in this browser`
+      + ` (Cache API, not localStorage). Nothing is sent to this site.`;
+    if (source === "estimated") {
+      // Naming the estimate matters: it runs high, so a refusal here may be
+      // refusing a download that would in fact have fit.
+      note += ` <span class="note">Size is WebLLM's GPU-memory figure, which overstates disk — the real number is measured after the first download.</span>`;
+    }
+  }
   if (verdict.known && !verdict.fits) {
     note += ` <span class="bad">Only ~${verdict.freeMB.toLocaleString()} MB free — this will not fit.</span>`;
-  } else if (warn) {
+  } else if (warn && !verdict.cached) {
     note += ` <span class="warn">On this connection or screen you may not want to.</span>`;
   }
-  note += ` <span class="note">The browser may evict it later; it is a cache, not permanent storage.</span>`;
+  if (!verdict.cached) {
+    note += ` <span class="note">The browser may evict it later; it is a cache, not permanent storage.</span>`;
+  }
   $("size-note").innerHTML = note;
 }
 
@@ -169,15 +262,19 @@ async function loadBackend() {
   const kind = document.querySelector('input[name="backend"]:checked').value;
 
   if (kind === "local") {
+    // Re-read the quota rather than trusting the page-load figure: a delete in
+    // this session, or an eviction outside it, both change the answer.
+    await refreshStorage();
     const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
     const verdict = storageVerdict(model);
     if (verdict.known && !verdict.fits && !storageOverridden) {
       // Estimates can be conservative, so this warns rather than forbids —
       // but it will not let the download start on an unread first click.
       storageOverridden = true;
+      renderModels();
       $("progress-text").innerHTML =
-        `<span class="bad">~${verdict.freeMB.toLocaleString()} MB free, ${model.megabytes.toLocaleString()} MB needed.</span>`
-        + ` <span class="note">Pick a smaller model, or press again to try anyway.</span>`;
+        `<span class="bad">~${verdict.freeMB.toLocaleString()} MB free, ${modelSize(model).megabytes.toLocaleString()} MB needed.</span>`
+        + ` <span class="note">Delete a cached model below, pick a smaller one, or press again to try anyway.</span>`;
       $("load").disabled = false;
       $("cancel-load").hidden = true;
       loadAbort = null;
@@ -207,6 +304,11 @@ async function loadBackend() {
     $("bar-fill").style.width = "100%";
     $("progress-text").innerHTML = `<span class="ok">${backend.label} ready.</span>`;
     $("run").disabled = false;
+    if (kind === "local") {
+      // First measurement of what the download actually cost on disk.
+      await refreshStorage();
+      renderModels();
+    }
   } catch (err) {
     backend = null;
     $("progress-text").innerHTML = isAbort(err)
@@ -214,6 +316,10 @@ async function loadBackend() {
       : `<span class="bad">${err.message}</span>`;
     if (err.code === ERR.NO_WEBGPU) {
       $("progress-text").innerHTML += ` <span class="note">Switch to a hosted key above.</span>`;
+    }
+    if (err.code === ERR.OUT_OF_MEMORY) {
+      // Distinct from a storage shortfall, and the advice is the opposite one.
+      $("progress-text").innerHTML += ` <span class="note">Deleting cached models will not help here — this is GPU memory, not disk.</span>`;
     }
   } finally {
     $("load").disabled = false;
@@ -233,6 +339,7 @@ async function run() {
     return;
   }
 
+  const abstain = $("abstain").checked;
   runAbort = new AbortController();
   $("run").disabled = true;
   $("cancel-run").hidden = false;
@@ -242,13 +349,14 @@ async function run() {
   const started = performance.now();
   try {
     const out = await backend.classify(item, $("answer").value, {
+      abstain,
       signal: runAbort.signal,
       onToken: (t) => {
         $("stream").textContent += t;
         $("stream").scrollTop = $("stream").scrollHeight;
       },
     });
-    renderResult(out, performance.now() - started, item);
+    renderResult(out, performance.now() - started, item, abstain);
   } catch (err) {
     setError(isAbort(err) ? "Cancelled." : `${err.code ?? "ERROR"}: ${err.message}`,
              isAbort(err) ? "warn" : "bad");
@@ -259,31 +367,66 @@ async function run() {
   }
 }
 
-function renderResult(out, ms, item) {
+function renderResult(out, ms, item, abstain) {
   const pole = item.poles.find((p) => p.id === out.pole);
   const repairs = out.repairs.length
     ? out.repairs.map((r) => `<span class="tag">${r}</span>`).join("")
     : `<span class="ok">none — clean first pass</span>`;
+  // An abstention is a real outcome, not a missing one, and must not be
+  // rendered as a pole whose label happens to be blank.
+  const poleCell = out.abstained
+    ? `<strong class="warn">${ABSTAIN}</strong> — model declined to classify`
+    : `<strong>${out.pole}</strong> — ${pole?.label ?? "?"}`;
   $("result").innerHTML = `
     <dl>
-      <dt>Pole</dt><dd><strong>${out.pole}</strong> — ${pole?.label ?? "?"}</dd>
+      <dt>Pole</dt><dd>${poleCell}</dd>
       <dt>Confidence</dt><dd>${out.confidence.toFixed(2)}</dd>
       <dt>Rationale</dt><dd>${out.rationale || "<span class='note'>(none given)</span>"}</dd>
       <dt>Repairs</dt><dd>${repairs}</dd>
+      <dt>Contract</dt><dd>${abstain ? "abstention offered" : "phase 1 control — no abstention"}</dd>
       <dt>Backend</dt><dd>${out.backend} · <code>${out.model}</code> · ${Math.round(ms)} ms</dd>
     </dl>`;
+}
+
+/**
+ * Show the question as a question.
+ *
+ * Phase 1 put the item in a raw JSON textarea and nothing else, so a scroll
+ * position that hid line 2 hid the entire prompt — leaving pole definitions on
+ * screen with no question attached. The first person to use it typed "what is
+ * supposed to be in here?" into the answer box, which was a fair reading.
+ */
+function syncItemPrompt() {
+  try {
+    const item = JSON.parse($("item").value);
+    const poles = (item.poles ?? []).map((p) => p.label ?? p.id).join(" · ");
+    $("item-prompt").innerHTML = `${item.prompt ?? "(no prompt)"} <span class="note">${poles}</span>`;
+  } catch {
+    $("item-prompt").innerHTML = `<span class="bad">Item JSON is not parseable.</span>`;
+  }
 }
 
 /* ---------- wiring ---------- */
 
 $("item").value = JSON.stringify(DEMO_ITEM, null, 2);
+$("item").addEventListener("input", syncItemPrompt);
+syncItemPrompt();
 $("key").value = localStorage.getItem(KEY_STORAGE) ?? "";
 $("key").addEventListener("change", () => {
   // Held here so a reload does not cost the visitor another paste. It is their
   // key, on their machine, and it is never transmitted to this origin.
   try { localStorage.setItem(KEY_STORAGE, $("key").value.trim()); } catch { /* private mode */ }
 });
-$("model").addEventListener("change", () => { storageOverridden = false; syncSizeNote(); syncLoadButton(); teardown(); });
+$("model").addEventListener("change", async () => {
+  storageOverridden = false;
+  teardown();
+  await refreshStorage();
+  renderModels();
+});
+$("cache-panel").addEventListener("click", (e) => {
+  const id = e.target?.dataset?.delete;
+  if (id) onDelete(id);
+});
 document.querySelectorAll('input[name="backend"]').forEach((el) =>
   el.addEventListener("change", syncBackendChoice));
 $("load").addEventListener("click", loadBackend);
@@ -292,6 +435,5 @@ $("run").addEventListener("click", run);
 $("cancel-run").addEventListener("click", () => runAbort?.abort());
 
 renderModels();
-syncLoadButton();
 renderProviders();
 renderCapability();

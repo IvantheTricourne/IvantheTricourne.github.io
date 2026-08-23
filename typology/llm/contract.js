@@ -7,7 +7,7 @@
  * Typology items arrive in Phase 3 (#26).
  *
  *   item  = { id, prompt, poles: [{ id, label, hint? }] }
- *   result= { pole, confidence, rationale, repairs[], backend, model }
+ *   result= { pole, abstained, confidence, rationale, repairs[], backend, model }
  *
  * A backend is:
  *   { id, label, init({onProgress, signal}), classify(item, text, opts), dispose() }
@@ -16,6 +16,7 @@
 export const ERR = {
   NO_WEBGPU: "NO_WEBGPU",
   MODEL_LOAD_FAILED: "MODEL_LOAD_FAILED",
+  OUT_OF_MEMORY: "OUT_OF_MEMORY",
   ABORTED: "ABORTED",
   BAD_KEY: "BAD_KEY",
   RATE_LIMITED: "RATE_LIMITED",
@@ -42,15 +43,47 @@ export function isAbort(err) {
 }
 
 /**
+ * Reserved pole id meaning "this answer does not resolve this item".
+ *
+ * Phase 1 had no such value, and that was the defect Phase 2 opens on: with a
+ * two-member enum and `pole` required, a model that correctly detects an empty
+ * or off-topic answer has nowhere to put that observation, so it launders it
+ * into a well-formed classification instead. Grammar-constrained decoding
+ * guarantees shape; it cannot guarantee grounding, and without this it
+ * actively suppresses the model's own signal that grounding is missing.
+ *
+ * A plain word rather than a __sentinel__: it sits in the enum next to real
+ * pole ids and small models handle it better when it reads as English.
+ */
+export const ABSTAIN = "insufficient";
+
+/** Pole ids a response may legally use, sentinel included when offered. */
+export function allowedPoleIds(item, { abstain = true } = {}) {
+  const ids = (item?.poles ?? []).map((p) => p.id);
+  if (!abstain) return ids;
+  if (ids.includes(ABSTAIN)) {
+    throw new Error(
+      `Item "${item?.id}" defines a pole with the reserved id "${ABSTAIN}".`,
+    );
+  }
+  return [...ids, ABSTAIN];
+}
+
+/**
  * JSON Schema for one item's answer. The `pole` enum is built per item so a
  * constrained decoder cannot emit a pole that does not exist — which is the
  * whole reason to prefer grammar-constrained output over prompt-and-hope.
+ *
+ * `abstain: false` reproduces the Phase 1 schema exactly. It is kept as the
+ * control arm for #25: the cost of offering an abstain option is that models
+ * may reach for it on answers they should have classified, and that rate is
+ * only measurable against the schema that lacks it.
  */
-export function schemaFor(item) {
+export function schemaFor(item, { abstain = true } = {}) {
   return {
     type: "object",
     properties: {
-      pole: { type: "string", enum: item.poles.map((p) => p.id) },
+      pole: { type: "string", enum: allowedPoleIds(item, { abstain }) },
       confidence: { type: "number" },
       rationale: { type: "string" },
     },
@@ -59,8 +92,8 @@ export function schemaFor(item) {
   };
 }
 
-export function systemPrompt() {
-  return [
+export function systemPrompt({ abstain = true } = {}) {
+  const shared = [
     "You map a person's free-text answer onto one of a fixed set of poles.",
     "Reply with a single JSON object and nothing else.",
     'Keys: "pole" (exactly one of the given pole ids), "confidence"',
@@ -68,8 +101,28 @@ export function systemPrompt() {
     "",
     "If the answer is hedged or conditional, choose the pole matching the",
     "person's default or baseline behaviour and lower the confidence.",
-    "If the answer is genuinely off-topic or empty, pick the closest pole and",
-    "set confidence below 0.2 — never invent a pole that was not offered.",
+  ];
+
+  if (!abstain) {
+    // Phase 1's wording, kept verbatim as the control. Worth reading closely:
+    // it *instructs* the model to fabricate a choice from a non-answer. Qwen
+    // obeyed it exactly, down to landing on 0.2, and its rationale came back
+    // as a near-paraphrase of this sentence. The schema made abstention
+    // unrepresentable; this made counterfeiting it mandatory.
+    return [
+      ...shared,
+      "If the answer is genuinely off-topic or empty, pick the closest pole and",
+      "set confidence below 0.2 — never invent a pole that was not offered.",
+    ].join("\n");
+  }
+
+  return [
+    ...shared,
+    "",
+    `If the answer is empty, off-topic, or does not address the question, reply`,
+    `with pole "${ABSTAIN}". Do not guess, and do not infer an answer from the`,
+    `question itself — the question is not evidence about the person. When they`,
+    `have not given you an answer, "${ABSTAIN}" is the correct one.`,
   ].join("\n");
 }
 
