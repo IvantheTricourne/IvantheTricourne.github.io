@@ -135,6 +135,11 @@ async function renderProviders() {
 
 function syncKeyNote(providers) {
   const spec = providers[$("provider").value];
+  // Prefilled, not hardcoded. Provider model ids get retired on a timescale
+  // shorter than this page's redeploys — Groq shut one down mid-review — so
+  // the field is the escape hatch when a default goes stale.
+  $("hosted-model").value = spec.defaultModel;
+  $("hosted-model").placeholder = spec.defaultModel;
   $("key-note").textContent = `${spec.keyHint}. Your key stays in this browser and goes only to ${spec.label} — never to this site.`;
 }
 
@@ -185,7 +190,11 @@ async function loadBackend() {
   try {
     backend = kind === "local"
       ? await createBackend("local", { modelId: $("model").value })
-      : await createBackend("hosted", { provider: $("provider").value, getKey: () => $("key").value.trim() });
+      : await createBackend("hosted", {
+          provider: $("provider").value,
+          model: $("hosted-model").value.trim(),
+          getKey: () => $("key").value.trim(),
+        });
 
     await backend.init({
       signal: loadAbort.signal,

@@ -36,7 +36,9 @@ function toGeminiSchema(schema) {
 export const PROVIDERS = {
   gemini: {
     label: "Google Gemini",
-    defaultModel: "gemini-2.5-flash",
+    // Current GA Flash as of 2026-08. Model ids churn fast — the UI exposes an
+    // override so a stale default is a field edit, not a redeploy.
+    defaultModel: "gemini-3.7-flash",
     keyHint: "Get a key at aistudio.google.com/apikey",
     endpoint: (model, key) =>
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key)}`,
@@ -56,7 +58,9 @@ export const PROVIDERS = {
 
   groq: {
     label: "Groq",
-    defaultModel: "llama-3.3-70b-versatile",
+    // llama-3.3-70b-versatile was shut down 2026-08-16; this is Groq's own
+    // named replacement for it.
+    defaultModel: "openai/gpt-oss-120b",
     keyHint: "Get a key at console.groq.com/keys",
     endpoint: () => "https://api.groq.com/openai/v1/chat/completions",
     headers: (key) => ({

@@ -57,23 +57,36 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
       const onAbort = () => engine.interruptGenerate();
       signal?.addEventListener("abort", onAbort, { once: true });
 
+      const request = (constrained) => ({
+        stream: true,
+        temperature: 0,
+        max_tokens: 220,
+        response_format: constrained
+          // xgrammar constrains decoding to this schema, so an invalid pole is
+          // unrepresentable rather than merely discouraged.
+          ? { type: "json_object", schema: JSON.stringify(schemaFor(item)) }
+          // Fallback: plain JSON mode. Valid JSON, arbitrary keys — json.js
+          // has to carry it from here.
+          : { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt() },
+          { role: "user", content: userPrompt(item, freeText) },
+        ],
+      });
+
       let text = "";
+      let constrained = true;
       try {
-        const stream = await engine.chat.completions.create({
-          stream: true,
-          temperature: 0,
-          max_tokens: 220,
-          response_format: {
-            type: "json_object",
-            // xgrammar constrains decoding to this schema, so an invalid pole
-            // is unrepresentable rather than merely discouraged.
-            schema: JSON.stringify(schemaFor(item)),
-          },
-          messages: [
-            { role: "system", content: systemPrompt() },
-            { role: "user", content: userPrompt(item, freeText) },
-          ],
-        });
+        let stream;
+        try {
+          stream = await engine.chat.completions.create(request(true));
+        } catch (schemaErr) {
+          // A grammar backend that rejects one of our schema keywords should
+          // degrade to unconstrained JSON, not fail the call outright.
+          if (signal?.aborted) throw schemaErr;
+          constrained = false;
+          stream = await engine.chat.completions.create(request(false));
+        }
 
         for await (const chunk of stream) {
           const delta = chunk.choices?.[0]?.delta?.content ?? "";
@@ -96,7 +109,13 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
           { retryable: true },
         );
       }
-      return { ...parsed.value, repairs: parsed.repairs, backend: "local", model: model.id, raw: text };
+      return {
+        ...parsed.value,
+        // Surfaced so phase 2 can separate "the grammar held" from "the repair
+        // layer saved it" instead of scoring both as a pass.
+        repairs: constrained ? parsed.repairs : [...parsed.repairs, "schema-unconstrained"],
+        backend: "local", model: model.id, raw: text,
+      };
     },
 
     async dispose() {
