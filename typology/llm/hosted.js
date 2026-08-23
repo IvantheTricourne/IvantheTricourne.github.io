@@ -48,7 +48,7 @@ export const PROVIDERS = {
       contents: [{ role: "user", parts: [{ text: userPrompt(item, freeText) }] }],
       generationConfig: {
         temperature: 0,
-        maxOutputTokens: 220,
+        maxOutputTokens: 512,
         responseMimeType: "application/json",
         responseSchema: toGeminiSchema(schemaFor(item, { abstain })),
       },
@@ -71,7 +71,7 @@ export const PROVIDERS = {
       model,
       stream: true,
       temperature: 0,
-      max_tokens: 220,
+      max_tokens: 512,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt({ abstain }) },
@@ -186,6 +186,11 @@ export function createHostedBackend({ provider = "gemini", model = "", getKey } 
 
       if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.");
 
+      // NOTE: no truncation retry here, unlike local.js. Deliberate — the
+      // hosted path has never been exercised against a live provider, and
+      // adding an untested retry to an untested path buys nothing. A cut-off
+      // response still reports `truncated-json` rather than the misleading
+      // `no-json-object`, which is the part that matters for diagnosis.
       const parsed = parseClassification(text, item, { abstain });
       if (!parsed.ok) {
         throw new LlmError(ERR.MALFORMED_OUTPUT,

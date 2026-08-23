@@ -38,9 +38,22 @@ const WORD_CONFIDENCE = {
  * closes, which is the signature of a response truncated by max_tokens.
  */
 export function extractJsonObject(text) {
-  if (typeof text !== "string") return null;
+  return findJsonObject(text).slice;
+}
+
+/**
+ * Same scan, but says *why* it failed.
+ *
+ * "No JSON here" and "the JSON stopped halfway" have opposite remedies — the
+ * first means the model ignored the format, the second means it ran out of
+ * token budget mid-sentence — and collapsing them sent the first real
+ * occurrence looking in the wrong place. Under grammar-constrained decoding
+ * the first is nearly impossible, which is itself the clue.
+ */
+export function findJsonObject(text) {
+  if (typeof text !== "string") return { slice: null, reason: "absent" };
   const start = text.indexOf("{");
-  if (start === -1) return null;
+  if (start === -1) return { slice: null, reason: "absent" };
 
   let depth = 0;
   let inString = false;
@@ -56,9 +69,12 @@ export function extractJsonObject(text) {
     }
     if (ch === '"') { inString = true; continue; }
     if (ch === "{") depth++;
-    else if (ch === "}" && --depth === 0) return text.slice(start, i + 1);
+    else if (ch === "}" && --depth === 0) {
+      return { slice: text.slice(start, i + 1), reason: "ok" };
+    }
   }
-  return null;
+  // An opening brace that never closes: the response was cut off.
+  return { slice: null, reason: "unterminated" };
 }
 
 /**
@@ -146,8 +162,15 @@ export function parseClassification(rawText, item, { abstain = true } = {}) {
   // coercion below applies to it too rather than needing a parallel branch.
   const resolvable = abstain ? [...poles, { id: ABSTAIN, label: ABSTAIN }] : poles;
 
-  const slice = extractJsonObject(rawText);
-  if (!slice) return { ok: false, reason: "no-json-object", repairs };
+  const found = findJsonObject(rawText);
+  const slice = found.slice;
+  if (!slice) {
+    return {
+      ok: false,
+      reason: found.reason === "unterminated" ? "truncated-json" : "no-json-object",
+      repairs,
+    };
+  }
   if (slice.trim() !== String(rawText ?? "").trim()) {
     repairs.push("extracted-from-prose");
   }

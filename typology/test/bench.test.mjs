@@ -112,3 +112,13 @@ test("a clean answer returned with low confidence is a failure", () => {
   assert.match(scoreCase(c, ok({ confidence: 0.2 })).detail, /underconfident/);
   assert.equal(scoreCase(c, ok({ confidence: 0.9 })).verdict, "pass");
 });
+
+test("the truncation trigger is carried as an unscored case", () => {
+  // Its value is reproducing a real failure, not testing a correct answer.
+  const c = find("both-poles-sequenced");
+  assert.ok(c, "the input that first broke the parser should stay in the suite");
+  assert.equal(c.expect.soft, true);
+  assert.equal(scoreCase(c, ok()).verdict, "soft");
+  // But if it comes back unreadable, that is still counted as a failure.
+  assert.equal(scoreCase(c, { error: "MALFORMED_OUTPUT" }).verdict, "fail");
+});

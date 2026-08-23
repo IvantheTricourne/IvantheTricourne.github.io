@@ -167,6 +167,18 @@ export function normalizeAnswer(freeText) {
     .trim();
 }
 
+/**
+ * Appended when a first attempt was cut off mid-object.
+ *
+ * Generation runs at temperature 0, so retrying the identical request returns
+ * the identical truncated bytes — a retry is only worth making if it changes
+ * the input. What overran is the rationale, so that is what the retry bounds.
+ */
+export function terseRetryNote() {
+  return "\n\nYour previous reply was cut off before the JSON closed. Reply again"
+    + " with the same keys and a rationale of at most 12 words.";
+}
+
 export function userPrompt(item, freeText) {
   const poles = item.poles
     .map((p) => `  - ${p.id}: ${p.label}${p.hint ? ` (${p.hint})` : ""}`)

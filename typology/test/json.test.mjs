@@ -104,10 +104,25 @@ test("a long but legitimate rationale is left intact", () => {
 });
 
 test("fails cleanly on unusable input", () => {
-  assert.deepEqual(parse("I'd say they match the file.").reason, "no-json-object");
-  assert.deepEqual(parse('{"pole":"match"').reason, "no-json-object");
-  assert.deepEqual(parse('{"pole":"sideways","confidence":1}').reason, "unresolvable-pole");
-  assert.deepEqual(parse("").reason, "no-json-object");
+  assert.equal(parse("I'd say they match the file.").reason, "no-json-object");
+  assert.equal(parse('{"pole":"sideways","confidence":1}').reason, "unresolvable-pole");
+  assert.equal(parse("").reason, "no-json-object");
+});
+
+test("a cut-off object is distinguished from no object at all", () => {
+  // They have opposite remedies: absent JSON means the model ignored the
+  // format, a cut-off object means it ran out of token budget mid-sentence.
+  // Reported identically, the first real occurrence sent me looking in the
+  // wrong place — and under grammar-constrained decoding, absent JSON is
+  // nearly impossible, which was the clue.
+  assert.equal(parse('{"pole":"match"').reason, "truncated-json");
+  assert.equal(
+    parse('{"pole":"ti","confidence":0.6,"rationale":"they say hold it but also').reason,
+    "truncated-json",
+  );
+  // A brace inside a string must not be mistaken for the object closing.
+  assert.equal(parse('{"rationale":"a } inside a string"').reason, "truncated-json");
+  assert.equal(parse("no braces at all").reason, "no-json-object");
 });
 
 test("a hallucinated pole is never silently accepted", () => {
