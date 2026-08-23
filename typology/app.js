@@ -61,6 +61,7 @@ function syncBackendChoice() {
   const kind = document.querySelector('input[name="backend"]:checked').value;
   $("local-opts").hidden = kind !== "local";
   $("hosted-opts").hidden = kind !== "hosted";
+  syncLoadButton();
   teardown();
 }
 
@@ -69,6 +70,23 @@ function renderModels() {
     .map((m) => `<option value="${m.id}"${m.id === DEFAULT_LOCAL_MODEL ? " selected" : ""}>${m.label} — ${m.megabytes.toLocaleString()} MB</option>`)
     .join("");
   syncSizeNote();
+}
+
+/**
+ * The button says what it will cost. A multi-gigabyte download must never be
+ * describable as "Load backend" — the price belongs at the moment of the
+ * click, not only in a note above it.
+ */
+function syncLoadButton() {
+  const kind = document.querySelector('input[name="backend"]:checked').value;
+  if (kind !== "local") {
+    $("load").textContent = "Connect";
+    return;
+  }
+  const model = LOCAL_MODELS.find((m) => m.id === $("model").value);
+  $("load").textContent = model
+    ? `Download ${model.megabytes.toLocaleString()} MB & load`
+    : "Load model";
 }
 
 function syncSizeNote() {
@@ -144,6 +162,7 @@ async function loadBackend() {
   } finally {
     $("load").disabled = false;
     $("cancel-load").hidden = true;
+    syncLoadButton();
     loadAbort = null;
   }
 }
@@ -208,7 +227,7 @@ $("key").addEventListener("change", () => {
   // key, on their machine, and it is never transmitted to this origin.
   try { localStorage.setItem(KEY_STORAGE, $("key").value.trim()); } catch { /* private mode */ }
 });
-$("model").addEventListener("change", () => { syncSizeNote(); teardown(); });
+$("model").addEventListener("change", () => { syncSizeNote(); syncLoadButton(); teardown(); });
 document.querySelectorAll('input[name="backend"]').forEach((el) =>
   el.addEventListener("change", syncBackendChoice));
 $("load").addEventListener("click", loadBackend);
@@ -217,5 +236,6 @@ $("run").addEventListener("click", run);
 $("cancel-run").addEventListener("click", () => runAbort?.abort());
 
 renderModels();
+syncLoadButton();
 renderProviders();
 renderCapability();
