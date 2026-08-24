@@ -460,6 +460,14 @@ Qwen3 emits `<think>` blocks unless told not to; the browser build does not, so
 the CLI passes `enable_thinking: false`. Without it the two would be measuring
 different models.
 
+### On a machine with a GPU
+
+`LOCAL-BENCH.md` covers running the same suite against a CUDA llama.cpp build.
+The point is not wall-clock: at ~10x the throughput, `--repeat 15` becomes
+affordable, and that is what the fence numbers actually need — every result so
+far rests on one sample per cell, against a tool documented to disagree with
+itself on one input in four.
+
 ## Running it
 
 ```sh

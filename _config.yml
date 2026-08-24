@@ -92,6 +92,7 @@ exclude:
   - typology/scripts
   - typology/README.md
   - typology/FINDINGS.md
+  - typology/LOCAL-BENCH.md
   # NOTE: CNAME must NOT be excluded — GitHub Pages reads the custom domain
   # from the built output, so excluding it drops ivanthetricourne.io.
 
