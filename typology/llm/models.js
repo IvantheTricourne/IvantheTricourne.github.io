@@ -28,19 +28,27 @@
  *
  * The gap is why this field exists at all:
  *
- *   Llama 3.2 1B   705 MB on disk   879 MB VRAM   1.25x
- *   Qwen3 1.7B     984 MB on disk  2037 MB VRAM   2.07x
- *   Llama 3.2 3B  1817 MB on disk  2264 MB VRAM   1.25x
+ *   Llama 3.2 1B   705 MB on disk  1129 MB VRAM   1.60x
+ *   Qwen3 1.7B     984 MB on disk  3843 MB VRAM   3.91x
+ *   Llama 3.2 3B  1817 MB on disk  2952 MB VRAM   1.62x
  *
  * Not a constant ratio, so there was never a factor to correct by — Qwen3 in
- * particular reports more than double its download. Verified against a real
+ * particular reports nearly four times its download. Verified against a real
  * cache: the 22 `params_shard_*.bin` files for Llama 3.2 1B sum to 695.2 MB,
  * matching the 695 MB floor the Cache API measured on a machine that had it.
+ *
+ * CORRECTED 2026-08-24. All three figures were low, and Qwen3's was low by
+ * 1.8 GB because it had been copied from the **q4f32_1** row rather than the
+ * q4f16_1 one this catalogue actually loads. Checked against 0.2.79 as well as
+ * the pinned 0.2.84, so it was a wrong-row copy and not version drift. The
+ * field only feeds the out-of-memory message, so the cost was an error that
+ * understated what it was explaining — but it understated it by most of a
+ * gigabyte on the default model.
  */
 export const LOCAL_MODELS = [
-  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", downloadMB: 705,  vramMB: 879 },
-  { id: "Qwen3-1.7B-q4f16_1-MLC",            label: "Qwen3 1.7B",   downloadMB: 984,  vramMB: 2037 },
-  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", downloadMB: 1817, vramMB: 2264 },
+  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B", downloadMB: 705,  vramMB: 1129 },
+  { id: "Qwen3-1.7B-q4f16_1-MLC",            label: "Qwen3 1.7B",   downloadMB: 984,  vramMB: 3843 },
+  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B", downloadMB: 1817, vramMB: 2952 },
 ];
 
 /**

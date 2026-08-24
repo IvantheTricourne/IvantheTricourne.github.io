@@ -2,7 +2,7 @@
 
 Follow-up to [#27](https://github.com/IvantheTricourne/IvantheTricourne.github.io/issues/27),
 extending the README's *Iterating without a browser*. Written against an RTX
-3070 (8 GB); anything with ~2 GB of spare VRAM will do for the 1.7B.
+3080 (10 GB); anything with ~2 GB of spare VRAM will do for the 1.7B.
 
 Everything below runs on one machine. A cloud dev environment cannot reach a
 `localhost:8080` on the desktop, so the model, the server and the bench all
@@ -13,14 +13,14 @@ have to live on the same box.
 Not speed for its own sake. **Every finding so far rests on one model.** The
 fence is reverted on the strength of three arms of Qwen3 1.7B, and Qwen is the
 model that *resists* injection — the case for a defence was always going to be
-made, if anywhere, on a model that doesn't. A 3070 holds a second one.
+made, if anywhere, on a model that doesn't. A 3080 holds a second one.
 
 Repeats are the other reason. llama.cpp disagrees with itself on roughly one
 input in four — continuous batching reorders floating-point reductions, so close
 calls flip between runs — and every cell so far is one sample at `--repeat 3`.
 
 On two CPU cores a call takes ~5 s — measured, not estimated. Fully offloaded
-to a 3070 it should be ~0.3–0.6 s. At 10x throughput `--repeat 15` costs about five minutes, the modal
+to a 3080 it should be ~0.3–0.6 s. At 10x throughput `--repeat 15` costs about five minutes, the modal
 verdict starts to mean something, and the agreement rate becomes data rather
 than a caveat.
 
@@ -105,12 +105,37 @@ resolve it and the revert stands on threat model instead.
 
 Do it second. Run 2 is the one that can still change something.
 
-## Run 2 — is any of this Qwen-specific? (start here)
+## Run 0 — the one that needs your browser, not your GPU (start here)
 
-The whole fence verdict is one model's behaviour. A 3070 holds more:
+Ten minutes, no llama.cpp, and it is the highest-value thing on this page.
+
+The quiz's local path fabricates on a blank answer where llama.cpp declines, and
+a quantization ladder narrowed it to the build: every 4-bit-and-up llama.cpp
+rung declines all four non-answers, the 2-bit rung fabricates all four at
+0.90–1.00. The browser's `q4f16_1-MLC` is behaving like the 2-bit rung.
+
+WebLLM ships **`Qwen3-1.7B-q4f32_1-MLC`** — the same 4-bit weights with fp32
+activations rather than fp16. It is not in `llm/models.js`; add it by hand, or
+point the harness at it, and take the quiz **leaving three or four items
+blank**:
+
+- it declines → f16 accumulation is the cause, and the fix is a catalogue entry
+- it fabricates too → the cause is xgrammar, and the local path's abstention
+  guarantee does not exist in any build we ship
+
+Either result closes a question no amount of CPU benchmarking can reach. It also
+wants ~2 GB of VRAM against q4f16_1's ~3.8 GB, so it is the cheaper model
+despite the wider activations.
+
+## Run 2 — is any of this Qwen-specific?
+
+The whole fence verdict is one model's behaviour. 10 GB holds more:
 
 - Llama 3.2 3B Q4_K_M — ~2 GB, and Phase 2 measured it at 80% in the browser
-- a 7–8B Q4_K_M — ~4.7 GB, still comfortable in 8 GB
+- a 7–8B Q4_K_M — ~4.7 GB, comfortable, and leaves room to keep a second
+  model resident rather than reloading between arms
+- a 14B Q4_K_M — ~9 GB, tight but it fits, and it is the first size where
+  "can a small model write questions" stops being a leading question
 
 ```sh
 npm run bench:cli -- --model llama-3.2-3b-q4.gguf --arm abstain --fence all --repeat 15

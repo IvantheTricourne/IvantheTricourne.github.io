@@ -462,6 +462,57 @@ Caveat, and it is a real one: **one blank item, one browser run.** The next
 browser session should plant three or four blanks before this is treated as
 settled rather than as a strong single observation.
 
+### Where abstention actually breaks: a quantization ladder
+
+The runtime divergence above left two suspects, quantization and the grammar
+engine. This tests the first: same weights, same prompt bytes, same llama.cpp,
+same GBNF grammar, only the quantization moving. Four non-answers — three blank
+items and one off-topic — five repeats each.
+
+| rung | declined |
+| --- | --- |
+| BF16 | 20/20 |
+| Q8_0 | 20/20 |
+| Q4_K_M | 15/20 |
+| Q4_0 | 20/20 |
+| Q2_K | **0/20** |
+
+**The prediction was dose-response and the result is a cliff.** Q4_0 is cruder
+than Q4_K_M and declines perfectly, so the one dip above the cliff is not on a
+slope — abstention holds across every 4-bit-and-up build and then collapses
+entirely at 2-bit.
+
+**The two failures are not the same failure.** Q4_K_M's five misses are all the
+off-topic item, and it reports them as *"The answer is off-topic and does not
+address the question"* — correct diagnosis, emitted through the confidence floor
+at 0.20 instead of through the sentinel. Phase 1's defect resurfacing as a
+hedge.
+
+Q2_K fabricates, and does it confidently:
+
+```
+fn-open-problem     ni @ 1.00   "Drill down to identify the underlying model quickly"
+en-others           nine @ 0.90 "...addressing the falling apart of the team and
+                                 finding a solution to absorb the issue"
+```
+
+Both answers were blank or off-topic. That `ni @ 1.00` rationale is the **pole's
+own hint text**, returned as the person's words — the hint leak and the
+fabrication in one output, which is the same signature as the browser's
+`ne @ 0.70` on a blank item.
+
+So `q4f16_1-MLC` behaves like the 2-bit rung, not like the 4-bit rungs it is
+nominally peer to. That is a lead rather than a verdict: it could equally be
+xgrammar. What it does establish is that **the prompt and the contract are
+sound** — the top of the ladder declines every non-answer without exception —
+and that the failure is downstream, in the build.
+
+**The test that would settle it:** WebLLM ships `Qwen3-1.7B-q4f32_1-MLC`, the
+same 4-bit weights with fp32 activations instead of fp16. If f16 accumulation is
+what breaks the decision, that build declines and this is a one-line catalogue
+change. If it fabricates too, the cause is xgrammar and the local path has a
+much bigger problem. Needs a browser; it is the first thing to run in one.
+
 ## Iterating without a browser
 
 The measurement suite needs WebGPU, which build environments do not have, so
