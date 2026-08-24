@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ABSTAIN, allowedPoleIds, schemaFor, systemPrompt } from "../llm/contract.js";
+import { ABSTAIN, allowedPoleIds, schemaFor, systemPrompt, userPrompt } from "../llm/contract.js";
 
 const item = {
   id: "t", prompt: "Which?",
@@ -68,4 +68,21 @@ test("the abstain prompt keeps the confidence floor as a fallback", () => {
   assert.ok(p.includes(`"${ABSTAIN}"`));
   assert.ok(/below 0\.2/i.test(p));
   assert.equal(/pick the closest pole/i.test(p), false);
+});
+
+test("an empty answer is announced, not left as an empty fence", () => {
+  // Measured on Qwen3 1.7B: an empty fence returned `match` at 0.90, the
+  // announced form declined at 0.20, and a real answer was identical either
+  // way. Adding the fence for injection hardening had quietly broken the
+  // abstention path Phase 2 exists to provide.
+  const item = { id: "t", prompt: "Q?", poles: [{ id: "a", label: "A" }, { id: "b", label: "B" }] };
+  for (const blank of ["", "   ", "\n\t ", null, undefined]) {
+    const p = userPrompt(item, blank);
+    assert.match(p, /gave no answer/, `blank input ${JSON.stringify(blank)}`);
+    assert.doesNotMatch(p, /their words for you to classify/);
+  }
+  const real = userPrompt(item, "I would pick A.");
+  assert.match(real, /their words for you to classify/);
+  assert.doesNotMatch(real, /gave no answer/);
+  assert.match(real, /I would pick A\./);
 });

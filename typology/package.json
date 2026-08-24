@@ -5,6 +5,7 @@
   "description": "Marks llm/*.js as ES modules for `node --test`. The browser does not read this file; it exists so the test run does not depend on Node's ESM syntax detection, which is version-dependent.",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "sizes": "node scripts/sizes.mjs"
+    "sizes": "node scripts/sizes.mjs",
+    "bench:cli": "node scripts/bench-cli.mjs"
   }
 }
