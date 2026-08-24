@@ -33,8 +33,19 @@
  * what `--repeat` exists to prevent: it runs each case N times, scores the
  * modal verdict, and flags any case that disagreed with itself.
  *
+ * ARMS. Two independent switches, crossed:
+ *
+ *   --arm    abstain | control | both   the #25 question: does offering
+ *                                       "insufficient" help or cost?
+ *   --fence  on | off | both            the #27 question: what does #31's
+ *                                       injection hardening cost?
+ *
+ * `--arm both --fence both` is four passes over the case list. The fence arm
+ * only moves the adversarial category by design; if it moves `clean` or
+ * `hedged`, that is the cost the open question is asking about.
+ *
  *   node scripts/bench-cli.mjs --endpoint http://127.0.0.1:8080/v1/chat/completions \
- *                              --model qwen3-1.7b --arm both
+ *                              --model qwen3-1.7b --arm both --fence both
  */
 import { BENCH_ITEM, CASES, scoreCase, summarize } from "../llm/bench.js";
 import { schemaFor, systemPrompt, userPrompt } from "../llm/contract.js";
@@ -49,14 +60,20 @@ const arg = (name, fallback) => {
 const ENDPOINT = arg("endpoint", "http://127.0.0.1:8080/v1/chat/completions");
 const MODEL = arg("model", "local");
 const ARM = arg("arm", "both");
+const FENCE = arg("fence", "on");
 const KEY = arg("key", process.env.LLM_API_KEY ?? "");
 const LIMIT = Number(arg("limit", "0")) || CASES.length;
 const REPEAT = Math.max(1, Number(arg("repeat", "1")) || 1);
 const JSON_OUT = argv.includes("--json");
 
-const arms = ARM === "both" ? [true, false] : [ARM !== "control"];
+const abstainArms = ARM === "both" ? [true, false] : [ARM !== "control"];
+const fenceArms = FENCE === "both" ? [true, false] : [FENCE !== "off"];
+// Crossed, abstain outermost, so a `--fence both` run reads as pairs.
+const arms = abstainArms.flatMap((abstain) => fenceArms.map((fence) => ({ abstain, fence })));
+const armLabel = ({ abstain, fence }) =>
+  `${abstain ? "abstain" : "control"}${FENCE === "both" ? (fence ? "+fence" : "+bare") : ""}`;
 
-async function classify(item, text, abstain) {
+async function classify(item, text, { abstain, fence }) {
   const body = {
     model: MODEL,
     temperature: 0,
@@ -72,8 +89,8 @@ async function classify(item, text, abstain) {
     // not, so leaving it on would measure a different model's behaviour.
     chat_template_kwargs: { enable_thinking: false },
     messages: [
-      { role: "system", content: systemPrompt({ abstain }) },
-      { role: "user", content: userPrompt(item, text) },
+      { role: "system", content: systemPrompt({ abstain, fence }) },
+      { role: "user", content: userPrompt(item, text, { fence }) },
     ],
   };
   const res = await fetch(ENDPOINT, {
@@ -91,18 +108,19 @@ const rows = [];
 // it pays compile and prefill in the browser.
 try { await classify(BENCH_ITEM, CASES[0].text, arms[0]); } catch { /* reported by the real run */ }
 
-for (const abstain of arms) {
+for (const arm of arms) {
   for (const testCase of CASES.slice(0, LIMIT)) {
     const base = {
       caseId: testCase.id, category: testCase.category,
-      arm: abstain ? "abstain" : "control", input: testCase.text,
+      arm: armLabel(arm), abstainArm: arm.abstain, fenceArm: arm.fence,
+      input: testCase.text,
     };
     const attempts = [];
     for (let n = 0; n < REPEAT; n++) {
       const started = Date.now();
       try {
-        const raw = await classify(BENCH_ITEM, testCase.text, abstain);
-        const parsed = parseClassification(raw, BENCH_ITEM, { abstain });
+        const raw = await classify(BENCH_ITEM, testCase.text, arm);
+        const parsed = parseClassification(raw, BENCH_ITEM, { abstain: arm.abstain });
         if (!parsed.ok) {
           const { verdict, detail } = scoreCase(testCase, { error: "MALFORMED_OUTPUT" });
           attempts.push({ ...base, ms: Date.now() - started, verdict,
@@ -129,7 +147,7 @@ for (const abstain of arms) {
       const r = rows.at(-1);
       const mark = { pass: "ok  ", fail: "FAIL", soft: "soft", error: "ERR " }[r.verdict];
       const flag = stable ? "" : `  [unstable ${counts[modal]}/${attempts.length}]`;
-      process.stdout.write(`${mark} ${r.arm.padEnd(7)} ${r.caseId.padEnd(24)} ${r.detail}${flag}\n`);
+      process.stdout.write(`${mark} ${r.arm.padEnd(14)} ${r.caseId.padEnd(24)} ${r.detail}${flag}\n`);
     }
   }
 }
