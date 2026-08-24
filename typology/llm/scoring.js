@@ -51,6 +51,13 @@ function argmax(scores, candidates) {
  * order, not on any answer. Ti winning that tie would have printed INTP rather
  * than ENTP from identical input. The tie-break has to stay deterministic, but
  * a result that hides how contested it was is overstating itself.
+ *
+ * `evidenced` is the harder version of the same problem. A contest whose top
+ * score is zero is not close — it is empty, and its "winner" is whichever
+ * candidate happens to be declared first. A later run made that concrete: the
+ * head centre came back `5` with 5, 6 and 7 all on zero, printed in the same
+ * shape as a type that had won something. Callers must not present an
+ * unevidenced winner as a result.
  */
 export function contest(scores, candidates) {
   let winner = null;
@@ -63,7 +70,14 @@ export function contest(scores, candidates) {
   const runnerUp = candidates
     .filter((c) => c !== winner)
     .reduce((best, c) => Math.max(best, scores[c] ?? 0), 0);
-  return { winner, top, tied, contested: tied.length > 1, margin: top - runnerUp };
+  const evidenced = top > 0;
+  return {
+    winner, top, tied, evidenced,
+    // A tie among candidates that all scored zero is an absence, not a
+    // contest. Reporting it as contested buries the stronger fact.
+    contested: tied.length > 1 && evidenced,
+    margin: top - runnerUp,
+  };
 }
 
 /**
@@ -72,30 +86,53 @@ export function contest(scores, candidates) {
  *            tertiary: string, inferior: string}}
  */
 export function functionStack(scores) {
-  const dominant = argmax(scores, FUNCTIONS);
+  const domContest = contest(scores, FUNCTIONS);
+  const ties = {};
+  const unmeasured = [];
+
+  // Nothing scored at all — every visitor answer abstained, or none arrived.
+  // The whole stack would be declaration order, so there is no stack.
+  if (!domContest.evidenced) {
+    return {
+      ego: null, shadow: null,
+      dominant: null, auxiliary: null, tertiary: null, inferior: null,
+      ties, unmeasured: ["dominant", "auxiliary"], margin: domContest.margin,
+    };
+  }
+
+  const dominant = domContest.winner;
+  if (domContest.contested) ties.dominant = domContest.tied;
 
   // The auxiliary balances the dominant on both counts: the other kind, and the
   // other attitude. That constraint is what stops an incoherent stack forming.
   const auxCandidates = FUNCTIONS.filter(
     (f) => KIND(f) !== KIND(dominant) && ATTITUDE(f) !== ATTITUDE(dominant),
   );
-  const auxiliary = argmax(scores, auxCandidates);
+  const auxContest = contest(scores, auxCandidates);
+
+  // A dominant with no evidenced partner is the partial case, and it is not
+  // rare: four candidates on zero happens whenever the items that would have
+  // separated them were abstained. Tertiary and inferior are derived from the
+  // auxiliary, so they fall with it, and so does the type — J/P reads off
+  // whichever of the top two faces outward, and there is no second one.
+  if (!auxContest.evidenced) {
+    return {
+      ego: null, shadow: null,
+      dominant, auxiliary: null, tertiary: null, inferior: null,
+      ties, unmeasured: ["auxiliary"], margin: domContest.margin,
+    };
+  }
+
+  const auxiliary = auxContest.winner;
+  if (auxContest.contested) ties.auxiliary = auxContest.tied;
 
   const tertiary = counterpart(auxiliary);
   const inferior = counterpart(dominant);
   const ego = [dominant, auxiliary, tertiary, inferior];
 
-  // Only the two scored positions can be contested; tertiary and inferior are
-  // derived, so they inherit whatever the top two settled.
-  const ties = {};
-  const domContest = contest(scores, FUNCTIONS);
-  if (domContest.contested) ties.dominant = domContest.tied;
-  const auxContest = contest(scores, auxCandidates);
-  if (auxContest.contested) ties.auxiliary = auxContest.tied;
-
   return {
     ego, shadow: ego.map(shadowOf), dominant, auxiliary, tertiary, inferior, ties,
-    margin: domContest.margin,
+    unmeasured, margin: domContest.margin,
   };
 }
 
@@ -109,6 +146,10 @@ export function functionStack(scores) {
  */
 export function mbtiFromStack(stack) {
   const { dominant, auxiliary } = stack;
+  // All four letters read off the top two. Without both, there is no honest
+  // partial answer — a letter derived from an unevidenced function is the
+  // manufacture this exists to prevent.
+  if (!dominant || !auxiliary) return null;
   const top = [dominant, auxiliary];
 
   const perceiving = top.find((f) => KIND(f) === "perceiving");
@@ -148,32 +189,54 @@ const topType = (scores, candidates) => contest(scores, candidates).winner;
  *            byCenter: Record<string, number>}}
  */
 export function enneagramFrom(scores) {
-  const core = topType(scores, ALL_TYPES);
-  const [prev, next] = wingsOf(core);
-  // A tie goes to the lower-numbered wing, for reproducibility rather than
-  // for any theoretical reason.
-  const wing = (scores[next] ?? 0) > (scores[prev] ?? 0) ? next : prev;
+  const coreContest = contest(scores, ALL_TYPES);
+  const ties = {};
+  const unmeasured = [];
 
+  const core = coreContest.evidenced ? coreContest.winner : null;
+  if (coreContest.contested) ties.core = coreContest.tied;
+  if (!core) unmeasured.push("core");
+
+  // Wings are read off the ring either side of the core, so an unmeasured core
+  // has no wing to read. Two wings on zero is the same absence one step down.
+  let wing = null;
+  if (core) {
+    const [prev, next] = wingsOf(core);
+    const prevScore = scores[prev] ?? 0;
+    const nextScore = scores[next] ?? 0;
+    if (prevScore > 0 || nextScore > 0) {
+      // A tie goes to the lower-numbered wing, for reproducibility rather than
+      // for any theoretical reason.
+      wing = nextScore > prevScore ? next : prev;
+      if (nextScore === prevScore) ties.wing = [prev, next];
+    }
+  }
+  if (!wing) unmeasured.push("wing");
+
+  // One type per centre — but only from centres the answers actually reached.
+  //
+  // A real run returned `head: 5` with 5, 6 and 7 all on zero. Twelve items do
+  // not cover nine types, so a whole centre going unscored is the normal case
+  // rather than an edge one, and emitting its first-declared type as a result
+  // manufactured a third of every tritype.
   const byCenter = {};
   for (const [center, types] of Object.entries(CENTERS)) {
-    byCenter[center] = topType(scores, types);
-  }
-  // Tritype is one type per centre, conventionally written strongest first.
-  const tritype = Object.values(byCenter).sort(
-    (a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a - b,
-  );
-
-  const ties = {};
-  const coreContest = contest(scores, ALL_TYPES);
-  if (coreContest.contested) ties.core = coreContest.tied;
-  if ((scores[next] ?? 0) === (scores[prev] ?? 0)) ties.wing = [prev, next];
-  for (const [center, types] of Object.entries(CENTERS)) {
     const c = contest(scores, types);
+    byCenter[center] = c.evidenced ? c.winner : null;
+    if (!c.evidenced) unmeasured.push(center);
     if (c.contested) (ties.centers ??= {})[center] = c.tied;
   }
 
+  // Conventionally written strongest first. Shorter than three when a centre
+  // went unmeasured, which is the point.
+  const tritype = Object.values(byCenter)
+    .filter((t) => t !== null)
+    .sort((a, b) => (scores[b] ?? 0) - (scores[a] ?? 0) || a - b);
+
   return {
-    core, wing, label: `${core}w${wing}`, tritype, byCenter, ties,
+    core, wing,
+    label: core ? (wing ? `${core}w${wing}` : `${core}`) : null,
+    tritype, byCenter, ties, unmeasured,
     margin: coreContest.margin,
   };
 }
@@ -200,12 +263,20 @@ export const MAX_ITEM_WEIGHT = 2;
 export function scoreAll({ functions = {}, enneagram = {}, answered = 0, abstained = 0 }) {
   const stack = functionStack(functions);
   const enn = enneagramFrom(enneagram);
+  // Dotted so one field answers "what did the answers fail to reach", without
+  // a caller having to walk both halves of the result to find out.
+  const unmeasured = [
+    ...stack.unmeasured.map((k) => `mbti.${k}`),
+    ...enn.unmeasured.map((k) => `enneagram.${k}`),
+  ];
+
   return {
     mbti: {
       type: mbtiFromStack(stack),
       stack: stack.ego,
       shadow: stack.shadow,
       ties: stack.ties,
+      unmeasured: stack.unmeasured,
       scores: functions,
     },
     enneagram: { ...enn, scores: enneagram },
@@ -214,6 +285,11 @@ export function scoreAll({ functions = {}, enneagram = {}, answered = 0, abstain
       // Surfaced next to the counts because it is the same kind of fact: how
       // much of this result the answers actually determined.
       contested: Object.keys(stack.ties).length > 0 || Object.keys(enn.ties).length > 0,
+      // Louder than `contested`, and a different claim: contested means the
+      // answers disagreed, unmeasured means they never arrived. A centre or a
+      // stack position listed here has no result, and the fields it would have
+      // filled are null rather than a plausible-looking type.
+      unmeasured,
       margins: { dominant: stack.margin, core: enn.margin },
       // The stronger signal. A tie is the special case where the margin is 0;
       // a margin of 1 against item weights of 2 is just as fragile and reports
