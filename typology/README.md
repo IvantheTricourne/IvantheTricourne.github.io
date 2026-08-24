@@ -397,6 +397,13 @@ Phase 1's schema making it unrepresentable; the second was the empty fence
 reading as no signal rather than no answer, patched in #31 by announcing it in
 words; this is the third.
 
+**Everything in that table is llama.cpp, not the browser.** `Q4_K_M` through a
+GBNF grammar, where a visitor gets `q4f16_1-MLC` through xgrammar. Those two
+runtimes have since been caught disagreeing about something much larger than the
+fence — see *The runtime we measure is not the runtime that ships* — so read
+these numbers as describing the prompt, which is what varies between the arms,
+rather than as describing what a visitor's browser will do.
+
 **Do not over-read the totals.** Sixteen scored cases, one model, one case per
 cell. What carries weight is the decline spread and the monotonic ordering, not
 75% vs 81% — though the `on` and `off` arms have now been run twice, in #32 and
@@ -414,6 +421,46 @@ misleads themselves, and there is no other user's data, no privileged action,
 and no shared state to reach. It matters more in Phase 4, where generated
 questions would be produced *from* visitor input, and that is where a real
 mitigation belongs. On this evidence it will not look like a fence.
+
+### The runtime we measure is not the runtime that ships
+
+Found by `scripts/quiz-cli.mjs` on 2026-08-24, and it is the most serious thing
+in this file.
+
+A real browser run left item 1 blank. The model returned `ne` at **0.70**,
+justified as *"the answer suggests exploring multiple possibilities and creating
+a sketch"* — there was no answer, so it invented the content and cited the
+invention. The fabricated pole then fed the function stack as the auxiliary.
+
+The identical item, blank, through llama.cpp:
+
+```
+fn-open-problem      DECLINED  0.20
+    "The answer is empty and does not address the question."
+```
+
+Same prompt bytes, same model family, opposite behaviour. Four things differ
+between the paths; two are configuration and two are the runtime:
+
+| | browser | bench + quiz CLI |
+| --- | --- | --- |
+| quantization | `q4f16_1-MLC` | `Q4_K_M` |
+| constrained decoding | xgrammar | GBNF, compiled from the same schema |
+| `response_format` | `{type:"json_object", schema}` | `{type:"json_schema", strict:true}` |
+| `enable_thinking` | not passed | `false` |
+
+**The configuration half is ruled out.** All four combinations of the last two
+rows decline the blank answer, three runs each, including WebLLM's exact
+`response_format` shape. Whatever is happening is in the quantization or the
+grammar engine.
+
+So `abstained: 0`, on every real quiz run so far, was never a coincidence.
+Phase 2's abstention finding, the `insufficient` sentinel, and #33's
+`unmeasured` reporting are all verified against a runtime nobody visits.
+
+Caveat, and it is a real one: **one blank item, one browser run.** The next
+browser session should plant three or four blanks before this is treated as
+settled rather than as a strong single observation.
 
 ## Iterating without a browser
 
@@ -536,6 +583,8 @@ llm/local.js       WebLLM backend      llm/worker.js  engine host (off main thre
 llm/hosted.js      Gemini + Groq       llm/models.js  local model catalogue
 llm/index.js       lazy backend factory
 scripts/sizes.mjs  re-read real download sizes (dev only, not deployed)
+scripts/bench-cli.mjs  the case list against any OpenAI-compatible endpoint, headless
+scripts/quiz-cli.mjs   the twelve-item run, the gate and the scoring, headless
 
 index.html app.js         the harness
 bench.html bench-app.js   the measurement runner
