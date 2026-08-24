@@ -37,12 +37,19 @@
  *
  *   --arm    abstain | control | both   the #25 question: does offering
  *                                       "insufficient" help or cost?
- *   --fence  on | off | both            the #27 question: what does #31's
- *                                       injection hardening cost?
+ *   --fence  on | markers | off | all   the #27 question: what does #31's
+ *           (also: both = on,off)        injection hardening cost, and which
+ *                                        half of it is charging?
  *
- * `--arm both --fence both` is four passes over the case list. The fence arm
- * only moves the adversarial category by design; if it moves `clean` or
- * `hedged`, that is the cost the open question is asking about.
+ * The fence arm only moves the adversarial category by design; if it moves
+ * `clean` or `hedged`, that is the cost the open question is asking about.
+ *
+ * `markers` is the arm #32's result asked for. It keeps the fence markers and
+ * the stripping — the structural guarantee — and drops the exhortation that
+ * declares the region data rather than instruction. #32 measured `on`
+ * declining 7/21 against `off`'s 11/21, and the exhortation is the half that
+ * plausibly causes that, so `markers` is what separates structure from
+ * suppression. Read it against both neighbours, not against `on` alone.
  *
  *   node scripts/bench-cli.mjs --endpoint http://127.0.0.1:8080/v1/chat/completions \
  *                              --model qwen3-1.7b --arm both --fence both
@@ -67,13 +74,30 @@ const REPEAT = Math.max(1, Number(arg("repeat", "1")) || 1);
 const JSON_OUT = argv.includes("--json");
 
 const abstainArms = ARM === "both" ? [true, false] : [ARM !== "control"];
-const fenceArms = FENCE === "both" ? [true, false] : [FENCE !== "off"];
-// Crossed, abstain outermost, so a `--fence both` run reads as pairs.
-const arms = abstainArms.flatMap((abstain) => fenceArms.map((fence) => ({ abstain, fence })));
-const armLabel = ({ abstain, fence }) =>
-  `${abstain ? "abstain" : "control"}${FENCE === "both" ? (fence ? "+fence" : "+bare") : ""}`;
 
-async function classify(item, text, { abstain, fence }) {
+// Each fence mode is a (fence, exhort) pair. `both` stays what it meant in #32
+// — the two ends — so a repeated run reproduces those numbers.
+const FENCE_MODES = {
+  on: { fence: true, exhort: true },
+  markers: { fence: true, exhort: false },
+  off: { fence: false, exhort: false },
+};
+const FENCE_ALIASES = { both: "on,off", all: "on,markers,off" };
+const fenceNames = (FENCE_ALIASES[FENCE] ?? FENCE).split(",").map((n) => n.trim());
+for (const name of fenceNames) {
+  if (!FENCE_MODES[name]) {
+    console.error(`--fence: unknown mode "${name}". Use ${Object.keys(FENCE_MODES).join(" | ")}, both, or all.`);
+    process.exit(2);
+  }
+}
+
+// Crossed, abstain outermost, so a multi-mode run reads as groups.
+const arms = abstainArms.flatMap((abstain) =>
+  fenceNames.map((name) => ({ abstain, name, ...FENCE_MODES[name] })));
+const armLabel = ({ abstain, name }) =>
+  `${abstain ? "abstain" : "control"}${fenceNames.length > 1 ? `+${name}` : ""}`;
+
+async function classify(item, text, { abstain, fence, exhort }) {
   const body = {
     model: MODEL,
     temperature: 0,
@@ -89,8 +113,8 @@ async function classify(item, text, { abstain, fence }) {
     // not, so leaving it on would measure a different model's behaviour.
     chat_template_kwargs: { enable_thinking: false },
     messages: [
-      { role: "system", content: systemPrompt({ abstain, fence }) },
-      { role: "user", content: userPrompt(item, text, { fence }) },
+      { role: "system", content: systemPrompt({ abstain, fence, exhort }) },
+      { role: "user", content: userPrompt(item, text, { fence, exhort }) },
     ],
   };
   const res = await fetch(ENDPOINT, {
@@ -112,7 +136,7 @@ for (const arm of arms) {
   for (const testCase of CASES.slice(0, LIMIT)) {
     const base = {
       caseId: testCase.id, category: testCase.category,
-      arm: armLabel(arm), abstainArm: arm.abstain, fenceArm: arm.fence,
+      arm: armLabel(arm), abstainArm: arm.abstain, fenceArm: arm.name,
       input: testCase.text,
     };
     const attempts = [];
