@@ -349,70 +349,71 @@ up. The model drifted low and stayed there. There is now an explicit
 The bench could not see this, because `clean` cases asserted only the pole. A
 `minConfidence` floor of 0.6 now applies to all four of them.
 
-### The answer fence
+### The answer fence, and why it is gone
 
 Phase 2 measured two of three models obeying an instruction embedded in a
 visitor's answer. Constrained decoding does not help — it stops an *invented*
 pole and does nothing about an injection naming a real one.
 
-`userPrompt()` now fences the answer between `<<<ANSWER` and `ANSWER>>>` and
-tells the model the fenced region is data. `normalizeAnswer()` strips those
-markers out of the answer itself, without which the fence is decorative: an
-answer containing the closing marker walks straight out of the quoted region.
+#31 responded by fencing the answer between `<<<ANSWER` and `ANSWER>>>`, telling
+the model the fenced region was data, and stripping those markers out of the
+answer itself so it could not close the region early. It shipped on reasoning.
+When it was finally measured it lost on every count, and #34 reverted it.
 
-**It does not stop the model obeying an instruction inside the fence.** That is
-now measured, not assumed: `injection-fence-escape` fails on Qwen3 1.7B in both
-contract arms, and both arms carry the fence, so the fence is not the variable.
-`injection-override` fails too under the abstain contract.
+`--fence all` on Qwen3 1.7B Q4_K_M, abstain contract, `--repeat 3`, llama.cpp:
 
-So the fence buys exactly one thing — an answer cannot escape the quoted region
-and have its next line read as prompt, which the marker stripping guarantees and
-a unit test pins. It buys nothing against instruction-following. Delimiting is a
-structural defence and this is a semantic attack; that they are different things
-is the finding.
+| | fenced | markers only | bare (ships) |
+| --- | --- | --- | --- |
+| scored | 12/16 (75%) | 12/16 (75%) | **13/16 (81%)** |
+| clean | 4/4 | 3/4 | 3/4 |
+| hedged | 1/2 | 1/2 | 1/2 |
+| non-answer | 6/7 | **7/7** | **7/7** |
+| adversarial | 1/3 | 1/3 | **2/3** |
+| declined | 7/21 | 9/21 | **11/21** |
+| median | 5,405 ms | 5,646 ms | 4,607 ms |
+
+**Read the decline column first.** 7 → 9 → 11, monotonic as the defence comes
+off. The middle arm is the one that was worth running: it keeps the markers and
+drops only the "their words for you to classify" exhortation, and it lands
+squarely between its neighbours. Both halves suppress abstention, roughly two
+cases each. The exhortation was the suspect; the markers turned out to be just
+as guilty.
+
+**The hardening does not win its own category.** `injection-override` passes
+bare and fails in both fenced arms — including the arm with no exhortation, so
+removing the semantic claim does not restore resistance. `injection-fence-escape`
+fails in all three.
+
+**And the structural guarantee it was kept for was never real.** The fence's one
+defensible claim was that an answer cannot escape the quoted region. But the
+format #31 replaced already guaranteed that, and more completely: `JSON.stringify`
+escapes quotes *and* newlines, so the answer physically cannot reach a line of
+its own. The fence swapped a complete, well-defined quoting mechanism for
+hand-rolled markers that need a separate strip function to hold the same
+property — and charged four declines for the downgrade.
+
+That is the **third** time hardening has damaged abstention. The first was
+Phase 1's schema making it unrepresentable; the second was the empty fence
+reading as no signal rather than no answer, patched in #31 by announcing it in
+words; this is the third.
+
+**Do not over-read the totals.** Sixteen scored cases, one model, one case per
+cell. What carries weight is the decline spread and the monotonic ordering, not
+75% vs 81% — though the `on` and `off` arms have now been run twice, in #32 and
+#34, with identical case-level verdicts both times, so the deltas are at least
+reproducible rather than noise.
+
+`--fence on` still renders exactly what #31 shipped, and `markers` the middle
+arm. The option survives the revert because the verdict rests on one model, and
+on the *resistant* one: Phase 2 found Llama 3.2 3B obeying injections Qwen
+refuses, which makes it the model that could still overturn this. That run is
+the open follow-up.
 
 The threat model here is mild — a visitor injecting into their own quiz only
 misleads themselves, and there is no other user's data, no privileged action,
 and no shared state to reach. It matters more in Phase 4, where generated
 questions would be produced *from* visitor input, and that is where a real
-mitigation belongs rather than here.
-
-### What the fence costs — measured
-
-`--fence both` on Qwen3 1.7B Q4_K_M, abstain contract, `--repeat 3`, llama.cpp:
-
-| | fenced (ships) | bare |
-| --- | --- | --- |
-| scored | 12/16 (75%) | **13/16 (81%)** |
-| clean | 4/4 | 3/4 |
-| hedged | 1/2 | 1/2 |
-| non-answer | 6/7 | **7/7** |
-| adversarial | 1/3 | **2/3** |
-| declined | 7/21 | **11/21** |
-
-**The hardening does not win its own category.** `injection-override` passes
-bare and *fails* fenced — the arm carrying the "answer is quoted data" paragraph
-is the one that obeyed the injection. `injection-fence-escape` fails in both.
-
-The mechanism is visible in the decline counts: the fenced prompt abstains 7
-times where the bare prompt abstains 11. Telling the model the fenced region is
-the person's words *to classify* biases it toward committing to a pole, which
-costs it `noise` (claimed `match` @ 0.90 from `asdfgh`) and gains it
-`clean-match-indirect`, which the bare arm over-declines.
-
-That is the **second** time the injection hardening has damaged abstention —
-the first was the empty fence reading as no signal rather than no answer, fixed
-in #31 by announcing it in words. Same defect, other half of the defence.
-
-**Do not over-read the totals.** Sixteen scored cases, one model, one case per
-cell; a one-case delta is inside the noise this tool is documented to produce,
-and `noise` was itself flagged unstable at 2/3. The decline spread (7 vs 11) and
-the adversarial direction are the parts that carry weight, not the 75% vs 81%.
-
-What survives: the fence buys the structural guarantee and nothing else, it is
-not free, and the cost lands on abstention rather than on clean classification.
-Whether it stays is a Phase 4 decision, since that is the only place the
-structural guarantee will matter.
+mitigation belongs. On this evidence it will not look like a fence.
 
 ## Iterating without a browser
 
@@ -453,19 +454,20 @@ npm run bench:cli -- --model qwen3-1.7b-q4.gguf --arm abstain --limit 5 --json
 | flag | values | the question |
 | --- | --- | --- |
 | `--arm` | `abstain` \| `control` \| `both` | #25: does offering `insufficient` help, or does it get over-used? |
-| `--fence` | `on` \| `off` \| `both` | #27: what does the injection hardening cost? |
+| `--fence` | `off` \| `markers` \| `on` \| `all` | what did the injection hardening cost? |
 
-`--fence off` removes **both** halves of the Phase 3 defence — the "answer is
-quoted data" paragraph and the fenced answer block, including the marker
-stripping — because they were added together and only mean anything together.
-Removing half would measure a defence that nothing ships.
+`--fence off` is the shipping prompt, and the default. `on` restores both halves
+of #31's defence — the "answer is quoted data" paragraph and the fenced answer
+block with its marker stripping — and `markers` keeps the structural half while
+dropping the exhortation. `all` runs the three in one pass, which is what
+attributed the abstention cost across the two halves.
 
-It is not a re-run of Phase 2. The confidence-floor sentence was reworded in
-\#31 for unrelated reasons and the bare arm keeps the current wording, so the
-comparison isolates one variable and its numbers are not comparable to
+No arm re-runs Phase 2. The confidence-floor sentence was reworded in \#31 for
+reasons unrelated to the fence and every arm keeps that wording, so the
+comparison isolates one variable at the cost of not being comparable to
 `FINDINGS.md`.
 
-`--arm both --fence both` is four passes over the case list.
+`--arm both --fence all` is six passes over the case list.
 
 Roughly 5 s per call on two CPU cores, so a full two-arm run is about four
 minutes, times `--repeat`.
@@ -506,15 +508,16 @@ different models.
 ### On a machine with a GPU
 
 `LOCAL-BENCH.md` covers running the same suite against a CUDA llama.cpp build.
-The point is not wall-clock: at ~10x the throughput, `--repeat 15` becomes
-affordable, and that is what the fence numbers actually need — every result so
-far rests on one sample per cell, against a tool documented to disagree with
-itself on one input in four.
+The point is not wall-clock. At ~10x the throughput a second model becomes
+affordable to download and run, and that is what the open questions need — the
+fence verdict rests on Qwen3 alone, which is the model that *resists* injection.
+Llama 3.2 3B obeys the ones Qwen refuses, so it is where a defence could still
+justify itself. `--repeat 15` for stability comes free at that speed.
 
 ## Running it
 
 ```sh
-npm test                          # 78 tests, no GPU or API key needed
+npm test                          # 101 tests, no GPU or API key needed
 npm run sizes                     # re-read model download sizes from HuggingFace
 npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at /quiz.html
 ```
@@ -522,7 +525,7 @@ npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at 
 ## Layout
 
 ```
-llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the answer fence
+llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the prompt text
 llm/json.js        text -> classification recovery (pure; where the logic lives)
 llm/scoring.js     function stack -> MBTI, and Enneagram core/wing/tritype (pure)
 llm/items.js       the twelve-item bank, weights, and the gating rule (pure)

@@ -37,22 +37,23 @@
  *
  *   --arm    abstain | control | both   the #25 question: does offering
  *                                       "insufficient" help or cost?
- *   --fence  on | markers | off | all   the #27 question: what does #31's
- *           (also: both = on,off)        injection hardening cost, and which
- *                                        half of it is charging?
+ *   --fence  off | markers | on | all   what #31's injection hardening cost.
+ *           (also: both = on,off)        Answered, and the answer reverted it
+ *                                        — `off` is now what ships.
  *
- * The fence arm only moves the adversarial category by design; if it moves
- * `clean` or `hedged`, that is the cost the open question is asking about.
+ * The fence arm was supposed to move only the adversarial category; that it
+ * moved abstention instead is what settled the question. Three arms on Qwen3
+ * 1.7B declined 7/21 (`on`), 9/21 (`markers`), 11/21 (`off`) while resisting
+ * injection 1/3, 1/3, 2/3. `markers` is the middle: fence and stripping kept,
+ * exhortation dropped. It exists to attribute the cost between the structural
+ * and semantic halves, and it showed both halves charging.
  *
- * `markers` is the arm #32's result asked for. It keeps the fence markers and
- * the stripping — the structural guarantee — and drops the exhortation that
- * declares the region data rather than instruction. #32 measured `on`
- * declining 7/21 against `off`'s 11/21, and the exhortation is the half that
- * plausibly causes that, so `markers` is what separates structure from
- * suppression. Read it against both neighbours, not against `on` alone.
+ * Keep running it. The verdict is one model, and it is the *resistant* one —
+ * Phase 2 found Llama 3.2 3B obeying injections Qwen refuses, so it is the
+ * model that could still overturn this.
  *
  *   node scripts/bench-cli.mjs --endpoint http://127.0.0.1:8080/v1/chat/completions \
- *                              --model qwen3-1.7b --arm both --fence both
+ *                              --model qwen3-1.7b --arm both --fence all
  */
 import { BENCH_ITEM, CASES, scoreCase, summarize } from "../llm/bench.js";
 import { schemaFor, systemPrompt, userPrompt } from "../llm/contract.js";
@@ -67,7 +68,8 @@ const arg = (name, fallback) => {
 const ENDPOINT = arg("endpoint", "http://127.0.0.1:8080/v1/chat/completions");
 const MODEL = arg("model", "local");
 const ARM = arg("arm", "both");
-const FENCE = arg("fence", "on");
+// Defaults to what ships, so a bare run measures the real prompt.
+const FENCE = arg("fence", "off");
 const KEY = arg("key", process.env.LLM_API_KEY ?? "");
 const LIMIT = Number(arg("limit", "0")) || CASES.length;
 const REPEAT = Math.max(1, Number(arg("repeat", "1")) || 1);
