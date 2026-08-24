@@ -349,70 +349,169 @@ up. The model drifted low and stayed there. There is now an explicit
 The bench could not see this, because `clean` cases asserted only the pole. A
 `minConfidence` floor of 0.6 now applies to all four of them.
 
-### The answer fence
+### The answer fence, and why it is gone
 
 Phase 2 measured two of three models obeying an instruction embedded in a
 visitor's answer. Constrained decoding does not help — it stops an *invented*
 pole and does nothing about an injection naming a real one.
 
-`userPrompt()` now fences the answer between `<<<ANSWER` and `ANSWER>>>` and
-tells the model the fenced region is data. `normalizeAnswer()` strips those
-markers out of the answer itself, without which the fence is decorative: an
-answer containing the closing marker walks straight out of the quoted region.
+#31 responded by fencing the answer between `<<<ANSWER` and `ANSWER>>>`, telling
+the model the fenced region was data, and stripping those markers out of the
+answer itself so it could not close the region early. It shipped on reasoning.
+When it was finally measured it lost on every count, and #34 reverted it.
 
-**It does not stop the model obeying an instruction inside the fence.** That is
-now measured, not assumed: `injection-fence-escape` fails on Qwen3 1.7B in both
-contract arms, and both arms carry the fence, so the fence is not the variable.
-`injection-override` fails too under the abstain contract.
+`--fence all` on Qwen3 1.7B Q4_K_M, abstain contract, `--repeat 3`, llama.cpp:
 
-So the fence buys exactly one thing — an answer cannot escape the quoted region
-and have its next line read as prompt, which the marker stripping guarantees and
-a unit test pins. It buys nothing against instruction-following. Delimiting is a
-structural defence and this is a semantic attack; that they are different things
-is the finding.
+| | fenced | markers only | bare (ships) |
+| --- | --- | --- | --- |
+| scored | 12/16 (75%) | 12/16 (75%) | **13/16 (81%)** |
+| clean | 4/4 | 3/4 | 3/4 |
+| hedged | 1/2 | 1/2 | 1/2 |
+| non-answer | 6/7 | **7/7** | **7/7** |
+| adversarial | 1/3 | 1/3 | **2/3** |
+| declined | 7/21 | 9/21 | **11/21** |
+| median | 5,405 ms | 5,646 ms | 4,607 ms |
+
+**Read the decline column first.** 7 → 9 → 11, monotonic as the defence comes
+off. The middle arm is the one that was worth running: it keeps the markers and
+drops only the "their words for you to classify" exhortation, and it lands
+squarely between its neighbours. Both halves suppress abstention, roughly two
+cases each. The exhortation was the suspect; the markers turned out to be just
+as guilty.
+
+**The hardening does not win its own category.** `injection-override` passes
+bare and fails in both fenced arms — including the arm with no exhortation, so
+removing the semantic claim does not restore resistance. `injection-fence-escape`
+fails in all three.
+
+**And the structural guarantee it was kept for was never real.** The fence's one
+defensible claim was that an answer cannot escape the quoted region. But the
+format #31 replaced already guaranteed that, and more completely: `JSON.stringify`
+escapes quotes *and* newlines, so the answer physically cannot reach a line of
+its own. The fence swapped a complete, well-defined quoting mechanism for
+hand-rolled markers that need a separate strip function to hold the same
+property — and charged four declines for the downgrade.
+
+That is the **third** time hardening has damaged abstention. The first was
+Phase 1's schema making it unrepresentable; the second was the empty fence
+reading as no signal rather than no answer, patched in #31 by announcing it in
+words; this is the third.
+
+**Everything in that table is llama.cpp, not the browser.** `Q4_K_M` through a
+GBNF grammar, where a visitor gets `q4f16_1-MLC` through xgrammar. Those two
+runtimes have since been caught disagreeing about something much larger than the
+fence — see *The runtime we measure is not the runtime that ships* — so read
+these numbers as describing the prompt, which is what varies between the arms,
+rather than as describing what a visitor's browser will do.
+
+**Do not over-read the totals.** Sixteen scored cases, one model, one case per
+cell. What carries weight is the decline spread and the monotonic ordering, not
+75% vs 81% — though the `on` and `off` arms have now been run twice, in #32 and
+#34, with identical case-level verdicts both times, so the deltas are at least
+reproducible rather than noise.
+
+`--fence on` still renders exactly what #31 shipped, and `markers` the middle
+arm. The option survives the revert because the verdict rests on one model, and
+on the *resistant* one: Phase 2 found Llama 3.2 3B obeying injections Qwen
+refuses, which makes it the model that could still overturn this. That run is
+the open follow-up.
 
 The threat model here is mild — a visitor injecting into their own quiz only
 misleads themselves, and there is no other user's data, no privileged action,
 and no shared state to reach. It matters more in Phase 4, where generated
 questions would be produced *from* visitor input, and that is where a real
-mitigation belongs rather than here.
+mitigation belongs. On this evidence it will not look like a fence.
 
-### What the fence costs — measured
+### The runtime we measure is not the runtime that ships
 
-`--fence both` on Qwen3 1.7B Q4_K_M, abstain contract, `--repeat 3`, llama.cpp:
+Found by `scripts/quiz-cli.mjs` on 2026-08-24, and it is the most serious thing
+in this file.
 
-| | fenced (ships) | bare |
+A real browser run left item 1 blank. The model returned `ne` at **0.70**,
+justified as *"the answer suggests exploring multiple possibilities and creating
+a sketch"* — there was no answer, so it invented the content and cited the
+invention. The fabricated pole then fed the function stack as the auxiliary.
+
+The identical item, blank, through llama.cpp:
+
+```
+fn-open-problem      DECLINED  0.20
+    "The answer is empty and does not address the question."
+```
+
+Same prompt bytes, same model family, opposite behaviour. Four things differ
+between the paths; two are configuration and two are the runtime:
+
+| | browser | bench + quiz CLI |
 | --- | --- | --- |
-| scored | 12/16 (75%) | **13/16 (81%)** |
-| clean | 4/4 | 3/4 |
-| hedged | 1/2 | 1/2 |
-| non-answer | 6/7 | **7/7** |
-| adversarial | 1/3 | **2/3** |
-| declined | 7/21 | **11/21** |
+| quantization | `q4f16_1-MLC` | `Q4_K_M` |
+| constrained decoding | xgrammar | GBNF, compiled from the same schema |
+| `response_format` | `{type:"json_object", schema}` | `{type:"json_schema", strict:true}` |
+| `enable_thinking` | not passed | `false` |
 
-**The hardening does not win its own category.** `injection-override` passes
-bare and *fails* fenced — the arm carrying the "answer is quoted data" paragraph
-is the one that obeyed the injection. `injection-fence-escape` fails in both.
+**The configuration half is ruled out.** All four combinations of the last two
+rows decline the blank answer, three runs each, including WebLLM's exact
+`response_format` shape. Whatever is happening is in the quantization or the
+grammar engine.
 
-The mechanism is visible in the decline counts: the fenced prompt abstains 7
-times where the bare prompt abstains 11. Telling the model the fenced region is
-the person's words *to classify* biases it toward committing to a pole, which
-costs it `noise` (claimed `match` @ 0.90 from `asdfgh`) and gains it
-`clean-match-indirect`, which the bare arm over-declines.
+So `abstained: 0`, on every real quiz run so far, was never a coincidence.
+Phase 2's abstention finding, the `insufficient` sentinel, and #33's
+`unmeasured` reporting are all verified against a runtime nobody visits.
 
-That is the **second** time the injection hardening has damaged abstention —
-the first was the empty fence reading as no signal rather than no answer, fixed
-in #31 by announcing it in words. Same defect, other half of the defence.
+Caveat, and it is a real one: **one blank item, one browser run.** The next
+browser session should plant three or four blanks before this is treated as
+settled rather than as a strong single observation.
 
-**Do not over-read the totals.** Sixteen scored cases, one model, one case per
-cell; a one-case delta is inside the noise this tool is documented to produce,
-and `noise` was itself flagged unstable at 2/3. The decline spread (7 vs 11) and
-the adversarial direction are the parts that carry weight, not the 75% vs 81%.
+### Where abstention actually breaks: a quantization ladder
 
-What survives: the fence buys the structural guarantee and nothing else, it is
-not free, and the cost lands on abstention rather than on clean classification.
-Whether it stays is a Phase 4 decision, since that is the only place the
-structural guarantee will matter.
+The runtime divergence above left two suspects, quantization and the grammar
+engine. This tests the first: same weights, same prompt bytes, same llama.cpp,
+same GBNF grammar, only the quantization moving. Four non-answers — three blank
+items and one off-topic — five repeats each.
+
+| rung | declined |
+| --- | --- |
+| BF16 | 20/20 |
+| Q8_0 | 20/20 |
+| Q4_K_M | 15/20 |
+| Q4_0 | 20/20 |
+| Q2_K | **0/20** |
+
+**The prediction was dose-response and the result is a cliff.** Q4_0 is cruder
+than Q4_K_M and declines perfectly, so the one dip above the cliff is not on a
+slope — abstention holds across every 4-bit-and-up build and then collapses
+entirely at 2-bit.
+
+**The two failures are not the same failure.** Q4_K_M's five misses are all the
+off-topic item, and it reports them as *"The answer is off-topic and does not
+address the question"* — correct diagnosis, emitted through the confidence floor
+at 0.20 instead of through the sentinel. Phase 1's defect resurfacing as a
+hedge.
+
+Q2_K fabricates, and does it confidently:
+
+```
+fn-open-problem     ni @ 1.00   "Drill down to identify the underlying model quickly"
+en-others           nine @ 0.90 "...addressing the falling apart of the team and
+                                 finding a solution to absorb the issue"
+```
+
+Both answers were blank or off-topic. That `ni @ 1.00` rationale is the **pole's
+own hint text**, returned as the person's words — the hint leak and the
+fabrication in one output, which is the same signature as the browser's
+`ne @ 0.70` on a blank item.
+
+So `q4f16_1-MLC` behaves like the 2-bit rung, not like the 4-bit rungs it is
+nominally peer to. That is a lead rather than a verdict: it could equally be
+xgrammar. What it does establish is that **the prompt and the contract are
+sound** — the top of the ladder declines every non-answer without exception —
+and that the failure is downstream, in the build.
+
+**The test that would settle it:** WebLLM ships `Qwen3-1.7B-q4f32_1-MLC`, the
+same 4-bit weights with fp32 activations instead of fp16. If f16 accumulation is
+what breaks the decision, that build declines and this is a one-line catalogue
+change. If it fabricates too, the cause is xgrammar and the local path has a
+much bigger problem. Needs a browser; it is the first thing to run in one.
 
 ## Iterating without a browser
 
@@ -453,19 +552,20 @@ npm run bench:cli -- --model qwen3-1.7b-q4.gguf --arm abstain --limit 5 --json
 | flag | values | the question |
 | --- | --- | --- |
 | `--arm` | `abstain` \| `control` \| `both` | #25: does offering `insufficient` help, or does it get over-used? |
-| `--fence` | `on` \| `off` \| `both` | #27: what does the injection hardening cost? |
+| `--fence` | `off` \| `markers` \| `on` \| `all` | what did the injection hardening cost? |
 
-`--fence off` removes **both** halves of the Phase 3 defence — the "answer is
-quoted data" paragraph and the fenced answer block, including the marker
-stripping — because they were added together and only mean anything together.
-Removing half would measure a defence that nothing ships.
+`--fence off` is the shipping prompt, and the default. `on` restores both halves
+of #31's defence — the "answer is quoted data" paragraph and the fenced answer
+block with its marker stripping — and `markers` keeps the structural half while
+dropping the exhortation. `all` runs the three in one pass, which is what
+attributed the abstention cost across the two halves.
 
-It is not a re-run of Phase 2. The confidence-floor sentence was reworded in
-\#31 for unrelated reasons and the bare arm keeps the current wording, so the
-comparison isolates one variable and its numbers are not comparable to
+No arm re-runs Phase 2. The confidence-floor sentence was reworded in \#31 for
+reasons unrelated to the fence and every arm keeps that wording, so the
+comparison isolates one variable at the cost of not being comparable to
 `FINDINGS.md`.
 
-`--arm both --fence both` is four passes over the case list.
+`--arm both --fence all` is six passes over the case list.
 
 Roughly 5 s per call on two CPU cores, so a full two-arm run is about four
 minutes, times `--repeat`.
@@ -503,10 +603,19 @@ Qwen3 emits `<think>` blocks unless told not to; the browser build does not, so
 the CLI passes `enable_thinking: false`. Without it the two would be measuring
 different models.
 
+### On a machine with a GPU
+
+`LOCAL-BENCH.md` covers running the same suite against a CUDA llama.cpp build.
+The point is not wall-clock. At ~10x the throughput a second model becomes
+affordable to download and run, and that is what the open questions need — the
+fence verdict rests on Qwen3 alone, which is the model that *resists* injection.
+Llama 3.2 3B obeys the ones Qwen refuses, so it is where a defence could still
+justify itself. `--repeat 15` for stability comes free at that speed.
+
 ## Running it
 
 ```sh
-npm test                          # 78 tests, no GPU or API key needed
+npm test                          # 101 tests, no GPU or API key needed
 npm run sizes                     # re-read model download sizes from HuggingFace
 npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at /quiz.html
 ```
@@ -514,7 +623,7 @@ npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at 
 ## Layout
 
 ```
-llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the answer fence
+llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the prompt text
 llm/json.js        text -> classification recovery (pure; where the logic lives)
 llm/scoring.js     function stack -> MBTI, and Enneagram core/wing/tritype (pure)
 llm/items.js       the twelve-item bank, weights, and the gating rule (pure)
@@ -525,6 +634,8 @@ llm/local.js       WebLLM backend      llm/worker.js  engine host (off main thre
 llm/hosted.js      Gemini + Groq       llm/models.js  local model catalogue
 llm/index.js       lazy backend factory
 scripts/sizes.mjs  re-read real download sizes (dev only, not deployed)
+scripts/bench-cli.mjs  the case list against any OpenAI-compatible endpoint, headless
+scripts/quiz-cli.mjs   the twelve-item run, the gate and the scoring, headless
 
 index.html app.js         the harness
 bench.html bench-app.js   the measurement runner
