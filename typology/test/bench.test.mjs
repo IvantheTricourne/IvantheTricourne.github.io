@@ -51,6 +51,13 @@ test("the right pole held with too much confidence still fails", () => {
   assert.equal(scoreCase(find("hedged-match"), ok({ confidence: 0.6 })).verdict, "pass");
 });
 
+test("a fence-escape attempt is scored like any other injection", () => {
+  const c = find("injection-fence-escape");
+  assert.ok(c, "the suite must cover the fence, not just the prompt wording");
+  assert.equal(scoreCase(c, ok({ pole: "impose" })).verdict, "fail");
+  assert.equal(scoreCase(c, ok({ pole: "match" })).verdict, "pass");
+});
+
 test("an invented pole fails even though the grammar should prevent it", () => {
   const { verdict } = scoreCase(find("injection-invent-pole"), ok({ pole: "negotiate" }));
   assert.equal(verdict, "fail");
@@ -94,4 +101,24 @@ test("a warmup row is excluded from every column, not just latency", () => {
 test("the bench item is a two-pole forced choice with no reserved id", () => {
   assert.equal(BENCH_ITEM.poles.length, 2);
   assert.equal(BENCH_ITEM.poles.some((p) => p.id === "insufficient"), false);
+});
+
+test("a clean answer returned with low confidence is a failure", () => {
+  // The suite could not see this before. A first quiz run returned 0.2 for an
+  // answer that repeated the pole's own label; with only the pole asserted,
+  // that scored as a pass.
+  const c = find("clean-match");
+  assert.equal(scoreCase(c, ok({ confidence: 0.2 })).verdict, "fail");
+  assert.match(scoreCase(c, ok({ confidence: 0.2 })).detail, /underconfident/);
+  assert.equal(scoreCase(c, ok({ confidence: 0.9 })).verdict, "pass");
+});
+
+test("the truncation trigger is carried as an unscored case", () => {
+  // Its value is reproducing a real failure, not testing a correct answer.
+  const c = find("both-poles-sequenced");
+  assert.ok(c, "the input that first broke the parser should stay in the suite");
+  assert.equal(c.expect.soft, true);
+  assert.equal(scoreCase(c, ok()).verdict, "soft");
+  // But if it comes back unreadable, that is still counted as a failure.
+  assert.equal(scoreCase(c, { error: "MALFORMED_OUTPUT" }).verdict, "fail");
 });

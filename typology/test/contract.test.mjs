@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ABSTAIN, allowedPoleIds, schemaFor, systemPrompt } from "../llm/contract.js";
+import { ABSTAIN, allowedPoleIds, schemaFor, systemPrompt, userPrompt } from "../llm/contract.js";
 
 const item = {
   id: "t", prompt: "Which?",
@@ -50,12 +50,39 @@ test("the control prompt keeps the instruction that caused the defect", () => {
   assert.equal(p.includes(ABSTAIN), false);
 });
 
+test("the confidence guidance pushes in both directions", () => {
+  // It only ever pushed down: hedged -> lower, non-answer -> below 0.2. With
+  // no upward anchor a real quiz run returned 0.2 for an answer that repeated
+  // the pole's own label, and the rationale claimed it was hedged. Three
+  // downward instructions and none upward is a bias, not calibration.
+  const p = systemPrompt();
+  assert.ok(/confidence above\s+0\.8/i.test(p), "needs a floor-raising instruction");
+  assert.ok(/lower the confidence/i.test(p), "and still lowers it when hedged");
+});
+
 test("the abstain prompt keeps the confidence floor as a fallback", () => {
   // Llama 3.2 1B ignores the abstain option entirely but does honour a numeric
   // floor. Dropping the floor as "redundant" moved it from 0.2 to 0.5 on the
   // same fabricated answer — strictly worse. Both instructions, not either.
   const p = systemPrompt();
   assert.ok(p.includes(`"${ABSTAIN}"`));
-  assert.ok(/set confidence below 0\.2/i.test(p));
+  assert.ok(/below 0\.2/i.test(p));
   assert.equal(/pick the closest pole/i.test(p), false);
+});
+
+test("an empty answer is announced, not left as an empty fence", () => {
+  // Measured on Qwen3 1.7B: an empty fence returned `match` at 0.90, the
+  // announced form declined at 0.20, and a real answer was identical either
+  // way. Adding the fence for injection hardening had quietly broken the
+  // abstention path Phase 2 exists to provide.
+  const item = { id: "t", prompt: "Q?", poles: [{ id: "a", label: "A" }, { id: "b", label: "B" }] };
+  for (const blank of ["", "   ", "\n\t ", null, undefined]) {
+    const p = userPrompt(item, blank);
+    assert.match(p, /gave no answer/, `blank input ${JSON.stringify(blank)}`);
+    assert.doesNotMatch(p, /their words for you to classify/);
+  }
+  const real = userPrompt(item, "I would pick A.");
+  assert.match(real, /their words for you to classify/);
+  assert.doesNotMatch(real, /gave no answer/);
+  assert.match(real, /I would pick A\./);
 });

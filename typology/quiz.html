@@ -1,0 +1,90 @@
+---
+# Front matter only so jekyll-sitemap can skip this page, as with the harness
+# and the bench. Dev tooling has no business in sitemap.xml (cf. #21).
+sitemap: false
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>typology quiz — phase 3</title>
+<link rel="stylesheet" href="./harness.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>typology quiz</h1>
+    <p class="sub">
+      Phase 3 (<a href="https://github.com/IvantheTricourne/IvantheTricourne.github.io/issues/26">#26</a>):
+      twelve forced choices, engineer framing, giving the harness real
+      classification work. <strong>This is not a validated instrument</strong> —
+      the items and their weights were written by one person in an afternoon,
+      and the only claim being tested is that the pipeline completes.
+      <a href="./index.html">harness</a> · <a href="./bench.html">bench</a>
+    </p>
+  </header>
+
+  <section>
+    <h2>1 · Backend</h2>
+    <div class="panel">
+      <div class="row">
+        <label><input type="radio" name="backend" value="local" checked> In-browser (WebLLM)</label>
+        <label><input type="radio" name="backend" value="hosted"> Hosted (your key)</label>
+      </div>
+      <div id="local-opts" class="opts">
+        <label>Model <select id="model"></select></label>
+      </div>
+      <div id="hosted-opts" class="opts" hidden>
+        <label>Provider <select id="provider"></select></label>
+        <label>API key <input type="password" id="key" placeholder="stored in this browser only" autocomplete="off"></label>
+        <label>Model <input type="text" id="hosted-model" spellcheck="false" autocomplete="off"></label>
+      </div>
+      <div class="row">
+        <button id="start" type="button">Load model &amp; begin</button>
+      </div>
+      <div id="progress" class="panel sub-panel" hidden>
+        <div class="bar"><div id="bar-fill"></div></div>
+        <p class="note" id="progress-text"></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="quiz-section" hidden>
+    <h2>2 · Questions</h2>
+    <div class="panel">
+      <p class="note" id="counter"></p>
+      <blockquote id="prompt" class="item-prompt">—</blockquote>
+      <ul id="poles" class="cache-list"></ul>
+      <label>Your answer — in your own words
+        <textarea id="answer" rows="3" spellcheck="false"
+          placeholder="However you would actually put it. Hedging is fine."></textarea>
+      </label>
+      <div class="row">
+        <button id="submit" type="button">Answer</button>
+        <button id="skip" type="button" class="link">Skip this one</button>
+      </div>
+      <p class="note" id="last"></p>
+    </div>
+  </section>
+
+  <section id="result-section" hidden>
+    <h2>3 · Result</h2>
+    <div class="panel">
+      <p class="note">
+        Unstyled JSON on purpose — presentation is Phase 5. Read
+        <code>evidence</code> first: it says how little this rests on.
+        <code>fragile</code> means the leader is ahead by no more than a single
+        item is worth, so one different answer would change the result —
+        <code>margins</code> says by how much, and <code>ties</code> names any
+        contest that was dead level and settled by declaration order.
+      </p>
+      <pre id="result" class="stream">—</pre>
+      <div class="row"><button id="restart" type="button">Run it again</button></div>
+    </div>
+  </section>
+</main>
+<script type="module" src="./quiz-app.js"></script>
+</body>
+</html>

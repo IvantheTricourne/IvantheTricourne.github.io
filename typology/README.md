@@ -225,27 +225,209 @@ written from data, not recollection.
   origins, Phase 5 is not a feature, it is a proxy, and the constraints forbid
   one.
 
+## Phase 3: the quiz
+
+`quiz.html` runs twelve forced-choice items through `classify()` and scores the
+result deterministically. Engineer framing only.
+
+**It is not a validated instrument, and cannot be.** The items and their
+weights were written together by one person, so tuning them to produce any
+chosen answer would be trivial and would demonstrate nothing about accuracy.
+The only claim being made is mechanical: the pipeline completes, every axis
+resolves, the tritype takes one type per centre, and nothing deadlocks. That is
+also all #26 asked for.
+
+### The split that matters
+
+The model's only job is mapping a free-text answer onto one of an item's named
+poles. Weights, stack derivation and tritype are pure arithmetic in
+`llm/scoring.js` and never touch the model. Phase 2 established that small
+models are reliable at *constrained classification* and established nothing
+about anything else, so nothing else is asked of them.
+
+### MBTI from the stack, not from four tallies
+
+Tallying E/I, N/S, T/F, J/P independently is the usual shortcut and it is wrong
+in a way that matters: it can emit letter combinations whose implied function
+stack is incoherent, and it discards the stack, which is the more interesting
+object. `functionStack()` instead picks a dominant, constrains the auxiliary to
+oppose it on **both** kind and attitude, and derives the rest. An incoherent
+stack becomes unrepresentable, and Beebe's eight positions fall out for free.
+
+J/P is the tell. It reports the attitude of whichever of the top two functions
+faces outward — which is why INTJ leads with an *introverted* perceiving
+function and still ends in J. All sixteen types are asserted in
+`test/scoring.test.mjs`, derived from their top two functions alone.
+
+### The gate
+
+One item carries `gate: { scale, marginBelow }` and is asked only while that
+scale's top two scores are within `marginBelow` of each other. It is Phase 4's
+adaptive mechanic in its smallest honest form. `margin()` returns 0 for an
+empty table on purpose: an empty table is maximally unresolved, and returning
+Infinity there would gate away the very item meant to break the tie.
+
+### Ties decide more than they should
+
+The first real run made this plain. Twelve items produced `Ne 4, Ti 4` and a
+three-way Enneagram tie at 2, so the printed type turned on the order functions
+are declared in: `Ti` winning the same tie prints INTP instead of ENTP from
+identical answers.
+
+Tie-breaking stays deterministic — reproducibility matters more than a coin
+flip — but a result that hides how contested it was overstates itself.
+
+Reporting ties turned out not to be enough. A third run differing from the
+second in **one answer** printed INTP instead of ENTP and reported *no ties at
+all*: `Ti` led `Ne` by exactly 1, and items carry weights of up to 2. A tie is
+just the special case where that lead is 0.
+
+So `evidence` carries `margins` and a `fragile` flag — true whenever the leader
+is ahead by no more than a single item is worth. With twelve items this fires
+almost always, which is the honest signal: the instrument is thin and should
+say so rather than print a confident four letters.
+
+Weighting each answer by the model's confidence would break most of these ties
+using information currently thrown away. That is deliberately **not** done yet:
+confidence was measurably miscalibrated in the same run, and amplifying a
+broken signal is worse than ignoring it.
+
+### Confidence had no upward anchor
+
+The same run returned `0.2` for *"Hold it and see if there's ways to poke holes
+at it"* against a pole labelled **Hold it**, with a rationale claiming the
+answer was hedged. It was verbatim.
+
+The cause was in the prompt: three instructions pushed confidence *down* —
+hedged answers, non-answers, the abstain fallback floor — and none pushed it
+up. The model drifted low and stayed there. There is now an explicit
+"plainly states a preference → above 0.8" anchor.
+
+The bench could not see this, because `clean` cases asserted only the pole. A
+`minConfidence` floor of 0.6 now applies to all four of them.
+
+### The answer fence
+
+Phase 2 measured two of three models obeying an instruction embedded in a
+visitor's answer. Constrained decoding does not help — it stops an *invented*
+pole and does nothing about an injection naming a real one.
+
+`userPrompt()` now fences the answer between `<<<ANSWER` and `ANSWER>>>` and
+tells the model the fenced region is data. `normalizeAnswer()` strips those
+markers out of the answer itself, without which the fence is decorative: an
+answer containing the closing marker walks straight out of the quoted region.
+
+**It does not stop the model obeying an instruction inside the fence.** That is
+now measured, not assumed: `injection-fence-escape` fails on Qwen3 1.7B in both
+contract arms, and both arms carry the fence, so the fence is not the variable.
+`injection-override` fails too under the abstain contract.
+
+So the fence buys exactly one thing — an answer cannot escape the quoted region
+and have its next line read as prompt, which the marker stripping guarantees and
+a unit test pins. It buys nothing against instruction-following. Delimiting is a
+structural defence and this is a semantic attack; that they are different things
+is the finding.
+
+The threat model here is mild — a visitor injecting into their own quiz only
+misleads themselves, and there is no other user's data, no privileged action,
+and no shared state to reach. It matters more in Phase 4, where generated
+questions would be produced *from* visitor input, and that is where a real
+mitigation belongs rather than here.
+
+## Iterating without a browser
+
+The measurement suite needs WebGPU, which build environments do not have, so
+every prompt change used to cost a human a manual run. That made iterating on
+the one part of this project that can only be settled empirically the most
+expensive thing to do, which is the wrong incentive.
+
+`scripts/bench-cli.mjs` runs the same cases through the same prompts and the
+same parser against any OpenAI-compatible endpoint. Point it at llama.cpp
+serving the same base model:
+
+```sh
+mkdir -p /workspaces/.llm && cd /workspaces/.llm
+
+# CPU build, ~16 MB
+curl -sSL -o llama.tar.gz https://github.com/ggml-org/llama.cpp/releases/download/b10612/llama-b10612-bin-ubuntu-x64.tar.gz
+tar xzf llama.tar.gz && rm llama.tar.gz
+
+# Qwen3 1.7B Q4_K_M, ~1.1 GB — within 12% of the WebLLM build's measured 984 MB
+curl -sL -o qwen3-1.7b-q4.gguf \
+  https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf
+
+./llama-b10612/llama-server -m qwen3-1.7b-q4.gguf --port 8080 -c 4096 -t 2 --no-webui
+```
+
+then, from `typology/`:
+
+```sh
+npm run bench:cli -- --model qwen3-1.7b-q4.gguf --arm both --repeat 3
+npm run bench:cli -- --model qwen3-1.7b-q4.gguf --arm abstain --limit 5 --json
+```
+
+Roughly 5 s per call on two CPU cores, so a full two-arm run is about four
+minutes, times `--repeat`.
+
+### What it does and does not measure
+
+It shares `systemPrompt`, `userPrompt`, `schemaFor`, `parseClassification`,
+`CASES` and `scoreCase` with the shipped path. Only the transport differs. So
+it is a real measurement of **the prompt and the parser**.
+
+It differs from the browser in three ways that matter:
+
+| | shipped | CLI |
+| --- | --- | --- |
+| engine | WebLLM / TVM | llama.cpp |
+| quantisation | q4f16_1 | Q4_K_M |
+| grammar | xgrammar | GBNF |
+| determinism | byte-identical at temp 0 | none |
+
+**Always pass `--repeat`.** WebLLM returns byte-identical output for a repeated
+input at temperature 0 — verified twice in the browser. llama.cpp does not:
+continuous batching changes the order of floating-point reductions, so close
+calls flip between runs. Measured here, one input in four disagreed with itself
+across four attempts. A single run cannot support a one-case delta, and reading
+one as signal is the specific mistake this tool makes easy. `--repeat` scores
+the modal verdict and flags every case that disagreed with itself.
+
+"Does the abstain instruction land" transfers. "Does xgrammar accept our
+schema" does not, and neither does anything about WebGPU, the Cache API, the
+storage gate, or the pages themselves. **Milestone verification stays a browser
+run on real hardware** — this exists so that run is confirming a result rather
+than discovering one.
+
+Qwen3 emits `<think>` blocks unless told not to; the browser build does not, so
+the CLI passes `enable_thinking: false`. Without it the two would be measuring
+different models.
+
 ## Running it
 
 ```sh
-npm test                          # 45 tests, no GPU or API key needed
-npx http-server . -p 8123 -s      # harness at /, measurement suite at /bench.html
+npm test                          # 78 tests, no GPU or API key needed
+npm run sizes                     # re-read model download sizes from HuggingFace
+npx http-server . -p 8123 -s      # harness at /, bench at /bench.html, quiz at /quiz.html
 ```
 
 ## Layout
 
 ```
-llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN
+llm/contract.js    the interface, error taxonomy, per-item schema, ABSTAIN, the answer fence
 llm/json.js        text -> classification recovery (pure; where the logic lives)
+llm/scoring.js     function stack -> MBTI, and Enneagram core/wing/tritype (pure)
+llm/items.js       the twelve-item bank, weights, and the gating rule (pure)
 llm/bench.js       the measurement set and its scoring rules (pure)
 llm/cache.js       what is on disk, and how to delete it
 llm/capability.js  WebGPU / storage / connection detection
 llm/local.js       WebLLM backend      llm/worker.js  engine host (off main thread)
 llm/hosted.js      Gemini + Groq       llm/models.js  local model catalogue
 llm/index.js       lazy backend factory
+scripts/sizes.mjs  re-read real download sizes (dev only, not deployed)
 
 index.html app.js         the harness
 bench.html bench-app.js   the measurement runner
+quiz.html  quiz-app.js    the twelve-item quiz
 ```
 
 ## Known unknowns

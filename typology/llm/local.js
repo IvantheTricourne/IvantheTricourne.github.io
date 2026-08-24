@@ -6,7 +6,7 @@
  * once, as a download that the Cache API then reuses.
  */
 import { CreateWebWorkerMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.84";
-import { ERR, LlmError, schemaFor, systemPrompt, userPrompt } from "./contract.js";
+import { ERR, LlmError, schemaFor, systemPrompt, userPrompt, terseRetryNote } from "./contract.js";
 import { parseClassification } from "./json.js";
 import { detectWebGpu } from "./capability.js";
 import { LOCAL_MODELS, DEFAULT_LOCAL_MODEL } from "./models.js";
@@ -41,6 +41,16 @@ function asLoadError(cause, model) {
     { cause },
   );
 }
+
+/**
+ * Output budget.
+ *
+ * Was 220, which held for 126 calls and then cut one off mid-object on an
+ * answer naming both poles — Qwen writes a long rationale when it has to
+ * reconcile a conflict. The parse cap is 400 characters, roughly 100 tokens,
+ * and 220 left no room for that plus the rest of the object.
+ */
+const MAX_TOKENS = 512;
 
 export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
   let engine = null;
@@ -82,10 +92,10 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
       const onAbort = () => engine.interruptGenerate();
       signal?.addEventListener("abort", onAbort, { once: true });
 
-      const request = (constrained) => ({
+      const request = (constrained, extraUser) => ({
         stream: true,
         temperature: 0,
-        max_tokens: 220,
+        max_tokens: MAX_TOKENS,
         response_format: constrained
           // xgrammar constrains decoding to this schema, so an invalid pole is
           // unrepresentable rather than merely discouraged. With abstention on,
@@ -96,27 +106,49 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
           : { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt({ abstain }) },
-          { role: "user", content: userPrompt(item, freeText) },
+          { role: "user", content: userPrompt(item, freeText) + (extraUser ?? "") },
         ],
       });
 
-      let text = "";
       let constrained = true;
-      try {
+
+      /** One generation pass. Returns the raw text. */
+      const generate = async (extraUser) => {
+        let text = "";
         let stream;
         try {
-          stream = await engine.chat.completions.create(request(true));
+          stream = await engine.chat.completions.create(request(true, extraUser));
         } catch (schemaErr) {
           // A grammar backend that rejects one of our schema keywords should
           // degrade to unconstrained JSON, not fail the call outright.
           if (signal?.aborted) throw schemaErr;
           constrained = false;
-          stream = await engine.chat.completions.create(request(false));
+          stream = await engine.chat.completions.create(request(false, extraUser));
         }
-
         for await (const chunk of stream) {
           const delta = chunk.choices?.[0]?.delta?.content ?? "";
           if (delta) { text += delta; onToken?.(delta); }
+        }
+        return text;
+      };
+
+      let text = "";
+      let parsed;
+      let retried = false;
+      try {
+        text = await generate();
+        parsed = parseClassification(text, item, { abstain });
+
+        // The one failure worth retrying. A truncated object means the answer
+        // was fine and the rationale overran; at temperature 0 the retry has to
+        // change the request or it returns the same bytes, so it asks for a
+        // shorter rationale. Budget of one — a second overrun is a real
+        // failure, not a hiccup.
+        if (!parsed.ok && parsed.reason === "truncated-json" && !signal?.aborted) {
+          retried = true;
+          onToken?.("\n[cut off — retrying with a shorter rationale]\n");
+          text = await generate(terseRetryNote());
+          parsed = parseClassification(text, item, { abstain });
         }
       } catch (cause) {
         if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.", { cause });
@@ -129,19 +161,21 @@ export function createLocalBackend({ modelId = DEFAULT_LOCAL_MODEL } = {}) {
 
       if (signal?.aborted) throw new LlmError(ERR.ABORTED, "Cancelled.");
 
-      const parsed = parseClassification(text, item, { abstain });
       if (!parsed.ok) {
         throw new LlmError(
           ERR.MALFORMED_OUTPUT,
           `Model output could not be read (${parsed.reason}).`,
-          { retryable: true },
+          { retryable: parsed.reason !== "truncated-json" },
         );
       }
+      const repairs = [...parsed.repairs];
+      if (!constrained) repairs.push("schema-unconstrained");
+      if (retried) repairs.push("retried-after-truncation");
       return {
         ...parsed.value,
         // Surfaced so phase 2 can separate "the grammar held" from "the repair
         // layer saved it" instead of scoring both as a pass.
-        repairs: constrained ? parsed.repairs : [...parsed.repairs, "schema-unconstrained"],
+        repairs,
         backend: "local", model: model.id, raw: text,
       };
     },
