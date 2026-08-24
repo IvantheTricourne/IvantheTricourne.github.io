@@ -41,7 +41,12 @@ test("the auxiliary always opposes the dominant on kind and attitude", () => {
   // The constraint that makes an incoherent stack unrepresentable. Asserted
   // over every function as dominant, not just the canonical pairings.
   for (const dom of FUNCTIONS) {
-    const { auxiliary } = functionStack({ [dom]: 10 });
+    // Both functions need a score: an auxiliary picked from four zeroes is
+    // declaration order, and is now reported as unmeasured rather than chosen.
+    const aux = FUNCTIONS.find(
+      (f) => ("NS".includes(f[0]) !== "NS".includes(dom[0])) && f[1] !== dom[1],
+    );
+    const { auxiliary } = functionStack({ [dom]: 10, [aux]: 5 });
     const kind = (f) => ("NS".includes(f[0]) ? "perceiving" : "judging");
     assert.notEqual(kind(auxiliary), kind(dom), `${dom} -> ${auxiliary} kind`);
     assert.notEqual(auxiliary[1], dom[1], `${dom} -> ${auxiliary} attitude`);
@@ -57,12 +62,31 @@ test("J/P reports the outward-facing function, not the dominant's kind", () => {
   assert.equal(mbtiFromStack(functionStack(profile("Ne", "Ti"))), "ENTP");
 });
 
-test("an all-zero profile still resolves to a real type", () => {
-  // The #26 acceptance bar: nothing deadlocks, every axis resolves. A visitor
-  // who abstains on everything must still get a coherent object out.
+test("an all-zero profile resolves to no type, and says which positions", () => {
+  // This used to assert the opposite — that a visitor who abstains on
+  // everything still gets a four-letter type — on the reading that #26's
+  // "every axis resolves" meant "nothing is ever null". That reading was
+  // wrong: a type read off eight zeroes is the FUNCTIONS array in disguise,
+  // and printing it in the same shape as a real result is the manufacture.
+  // Nothing deadlocks, which is what the acceptance bar actually asked for.
   const stack = functionStack({});
-  assert.equal(stack.ego.length, 4);
-  assert.match(mbtiFromStack(stack), /^[EI][NS][TF][JP]$/);
+  assert.equal(stack.ego, null);
+  assert.equal(stack.dominant, null);
+  assert.equal(mbtiFromStack(stack), null);
+  assert.deepEqual(stack.unmeasured, ["dominant", "auxiliary"]);
+});
+
+test("a dominant with no evidenced partner yields no type either", () => {
+  // The partial case, and not a rare one: four auxiliary candidates on zero
+  // happens whenever the items that would separate them were abstained. The
+  // dominant is real and is reported; the type is not, because J/P reads off
+  // whichever of the top two faces outward and there is no second one.
+  const stack = functionStack({ Ni: 4 });
+  assert.equal(stack.dominant, "Ni");
+  assert.equal(stack.auxiliary, null);
+  assert.equal(stack.ego, null);
+  assert.equal(mbtiFromStack(stack), null);
+  assert.deepEqual(stack.unmeasured, ["auxiliary"]);
 });
 
 test("scoring is reproducible under ties", () => {
@@ -105,11 +129,39 @@ test("a wing tie resolves low, and does not throw", () => {
   assert.equal(r.label, "5w4");
 });
 
-test("an empty enneagram profile still yields a full result", () => {
+test("an empty enneagram profile yields no core, no wing, no tritype", () => {
   const r = enneagramFrom({});
-  assert.ok(r.core >= 1 && r.core <= 9);
-  assert.equal(r.tritype.length, 3);
-  assert.match(r.label, /^\dw\d$/);
+  assert.equal(r.core, null);
+  assert.equal(r.wing, null);
+  assert.equal(r.label, null);
+  assert.deepEqual(r.tritype, []);
+  assert.deepEqual(r.byCenter, { gut: null, heart: null, head: null });
+  assert.deepEqual(r.unmeasured, ["core", "wing", "gut", "heart", "head"]);
+});
+
+test("a centre nothing reached is dropped from the tritype, not invented", () => {
+  // Verbatim from a real run: only 1, 2, 3 and 8 scored at all, and the head
+  // centre came back `5` with 5, 6 and 7 tied at zero — a third of the tritype
+  // decided by CENTERS declaration order and printed like a type that won.
+  // Twelve items cannot cover nine types, so this is the normal case.
+  const r = enneagramFrom({ 1: 1, 2: 2, 3: 2, 8: 3 });
+  assert.equal(r.byCenter.head, null);
+  assert.deepEqual(r.tritype, [8, 2], "two centres reached, two entries");
+  // 8 wins the core, and both its wings (7 and 9) are on zero too — the same
+  // absence one step down, from the same twelve-items-nine-types shortfall.
+  assert.deepEqual(r.unmeasured, ["wing", "head"]);
+  assert.equal(r.ties.centers?.head, undefined, "an absence is not a tie");
+  // The centres that were reached are unaffected.
+  assert.equal(r.byCenter.gut, 8);
+  assert.deepEqual(r.ties.centers.heart, [2, 3]);
+});
+
+test("a core with both wings on zero keeps the core and drops the wing", () => {
+  const r = enneagramFrom({ 5: 3 });
+  assert.equal(r.core, 5);
+  assert.equal(r.wing, null);
+  assert.equal(r.label, "5", "no wing to name");
+  assert.deepEqual(r.unmeasured, ["wing", "gut", "heart"]);
 });
 
 /* ---------- assembly ---------- */
@@ -128,9 +180,15 @@ test("scoreAll reports how thin the evidence is", () => {
   assert.equal(r.evidence.items, 12);
   // And contested, correctly: a single Enneagram score leaves both wings and
   // two of the three centres on zero, so those are decided by nothing at all.
-  assert.equal(r.evidence.contested, true);
-  assert.deepEqual(r.enneagram.ties.wing, [4, 6]);
-  assert.deepEqual(Object.keys(r.enneagram.ties.centers).sort(), ["gut", "heart"]);
+  // A single Enneagram score leaves both wings and two of the three centres on
+  // zero. Those are not contests that came out close — nothing reached them.
+  assert.equal(r.evidence.contested, false, "no contest was actually close");
+  assert.equal(r.enneagram.ties.wing, undefined);
+  assert.equal(r.enneagram.ties.centers, undefined);
+  assert.deepEqual(r.evidence.unmeasured, [
+    "enneagram.wing", "enneagram.gut", "enneagram.heart",
+  ]);
+  assert.deepEqual(r.enneagram.tritype, [5], "one centre reached, one entry");
 });
 
 /* ---------- ties (found by the first real quiz run) ---------- */
@@ -168,12 +226,22 @@ test("enneagram ties are reported per contest, not as one flag", () => {
   assert.equal(r.ties.centers.head, undefined);
 });
 
-test("a tie among zero-scored candidates still counts as contested", () => {
-  // The worst case for honesty: nothing was answered, so everything ties and
-  // the "result" is pure declaration order.
+test("nothing answered reports as unmeasured, not as an eight-way tie", () => {
+  // This test used to assert `contested: true` and an eight-way dominant tie,
+  // which was the best available signal before there was a better one. It read
+  // as "the answers disagreed" when the truth was "there were no answers", and
+  // it left a type on screen. Unmeasured is the stronger and more accurate
+  // claim, so the tie is no longer reported.
   const r = scoreAll({ functions: {}, enneagram: {}, answered: 0, abstained: 12 });
-  assert.equal(r.evidence.contested, true);
-  assert.equal(r.mbti.ties.dominant.length, 8);
+  assert.equal(r.mbti.type, null);
+  assert.equal(r.enneagram.label, null);
+  assert.deepEqual(r.mbti.ties, {});
+  assert.equal(r.evidence.contested, false);
+  assert.equal(r.evidence.fragile, true, "still maximally fragile");
+  assert.deepEqual(r.evidence.unmeasured, [
+    "mbti.dominant", "mbti.auxiliary",
+    "enneagram.core", "enneagram.wing", "enneagram.gut", "enneagram.heart", "enneagram.head",
+  ]);
 });
 
 test("a one-point lead is reported as fragile even with no tie", () => {

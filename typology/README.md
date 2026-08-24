@@ -292,6 +292,49 @@ using information currently thrown away. That is deliberately **not** done yet:
 confidence was measurably miscalibrated in the same run, and amplifying a
 broken signal is worse than ignoring it.
 
+### Unmeasured is a different claim from contested
+
+Reporting ties still wasn't enough, because a tie at **zero** is not a close
+contest — it is an absence wearing a contest's clothes.
+
+A later run made that concrete. Only types 1, 2, 3 and 8 scored at all, and the
+head centre came back `5` with 5, 6 and 7 tied at zero: one third of the
+tritype decided by the order `CENTERS` happens to list its types, printed in
+the same shape as a type that won something. Twelve items cannot cover nine
+types, so this is the **normal** case rather than an edge one.
+
+`contest()` now reports `evidenced` — whether the top score is above zero — and
+everything downstream refuses to name a winner without it:
+
+| | before | now |
+| --- | --- | --- |
+| head centre, all zero | `head: 5` | `head: null`, `unmeasured: ["head"]` |
+| tritype, one centre reached | three entries | one entry |
+| core with both wings zero | `8w7` | `8` |
+| nothing answered at all | a four-letter type | `type: null` |
+| dominant scored, auxiliary not | full stack | `dominant` only, no type |
+
+`evidence.unmeasured` collects them dotted (`enneagram.head`, `mbti.auxiliary`)
+so one field answers "what did the answers fail to reach".
+
+A zero-tie is no longer reported as a tie, and `contested` no longer fires on
+one. That is not a downgrade: `contested` means the answers disagreed,
+`unmeasured` means they never arrived, and the second is both the stronger
+admission and the more common one. `fragile` still fires either way.
+
+The last row is the one that changed a shipped promise. A previous test
+asserted that a visitor who abstains on everything still gets a coherent
+four-letter type, reading #26's "every axis resolves" as "nothing is ever
+null". That reading was wrong — a type read off eight zeroes is the `FUNCTIONS`
+array in disguise. Nothing deadlocks, which is what the acceptance bar actually
+asked for.
+
+The alternative fix — hand-authoring items to cover the head centre — was
+rejected. #26 capped the content at twelve deliberately, and an unresolved
+centre is precisely the input Phase 4's generated follow-ups are meant to
+consume. Adding items now would solve it in the way that makes Phase 4 harder
+to justify.
+
 ### Confidence had no upward anchor
 
 The same run returned `0.2` for *"Hold it and see if there's ways to poke holes
